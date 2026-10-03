@@ -1,0 +1,156 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Vazirmatn (SIL Open Font License, see /fonts/vazirmatn/OFL.txt): shipped with the site so Persian text looks the
+   same on every device instead of falling back to whatever the system has. The file name carries a version because
+   next.config.ts serves /fonts as immutable for a year: a changed font must be a new name (and the preload in
+   src/app/[locale]/layout.tsx must follow it). */
+@font-face {
+  font-family: "Vazirmatn";
+  src: url("/fonts/vazirmatn/Vazirmatn-Variable.v1.woff2") format("woff2");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root {
+  --font-sans: "Aptos", "Segoe UI", system-ui, -apple-system, "Roboto", "Vazirmatn", "Tahoma", sans-serif;
+  --background: 216 30% 7%;
+  --foreground: 210 20% 96%;
+  --muted: 218 22% 13%;
+  --muted-foreground: 215 14% 70%;
+  --border: 216 18% 22%;
+  --card: 217 26% 9.5%;
+  --card-foreground: 210 20% 96%;
+  --primary: 169 82% 44%;
+  --primary-foreground: 170 70% 8%;
+  --destructive: 0 72% 55%;
+  --success: 142 70% 45%;
+  --warning: 42 92% 55%;
+}
+
+/* Persian pages lead with the Persian face (its Latin glyphs match it). English pages use the platform UI face
+   (system-ui, -apple-system and Roboto cover every platform that lacks Aptos and Segoe UI), so Latin text never
+   draws in, or downloads, the Persian font. Vazirmatn stays in the stack for Persian words that user content can
+   put on an English page (a note written in Persian, say): where the UI face has no Arabic glyphs the browser
+   reaches it, so such a page still fetches the file. The one Persian word every English page has, the language
+   switch's label, is set in a system-only stack (LanguageSwitch in app-shell.tsx) so it never causes that fetch. */
+html[lang="fa"] {
+  --font-sans: "Vazirmatn", "Segoe UI", "Tahoma", sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  /* The sticky header is about 4.3rem tall: an in-page jump (/fa#features) must not land its title underneath it. */
+  scroll-padding-top: 5rem;
+  min-height: 100%;
+  color-scheme: dark;
+  background: hsl(var(--background));
+}
+
+body {
+  min-height: 100%;
+  margin: 0;
+  background:
+    radial-gradient(circle at 16% -4rem, rgba(45, 212, 191, 0.12), transparent 28rem),
+    radial-gradient(circle at 88% 4rem, rgba(56, 189, 248, 0.075), transparent 24rem),
+    linear-gradient(180deg, rgba(15, 23, 42, 0.36), transparent 28rem),
+    hsl(var(--background));
+  color: hsl(var(--foreground));
+  font-family: var(--font-sans);
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+::selection {
+  background: rgba(45, 212, 191, 0.35);
+}
+
+:focus-visible {
+  outline: 2px solid hsl(var(--primary));
+  outline-offset: 2px;
+}
+
+::-webkit-scrollbar {
+  height: 10px;
+  width: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: hsl(var(--background));
+}
+
+::-webkit-scrollbar-thumb {
+  background: hsl(var(--border));
+  border: 2px solid hsl(var(--background));
+  border-radius: 999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--muted-foreground) / 0.55);
+}
+
+.dir-rtl {
+  direction: rtl;
+}
+
+.dir-ltr {
+  direction: ltr;
+}
+
+@supports (padding: max(0px)) {
+  body {
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Landing hero: the chart is drawn in by script, so the parts that will be drawn stay out of sight until the script
+   takes over (it then sets data-intro="running"). If the script never arrives, the finished chart appears by itself
+   after four seconds. Visitors who asked for less motion see the finished chart at once. */
+@media (prefers-reduced-motion: no-preference) {
+  [data-intro="pending"] [data-intro-part] {
+    opacity: 0;
+    animation: tm-intro-reveal 0.4s ease 4s forwards;
+  }
+}
+
+@keyframes tm-intro-reveal {
+  to {
+    opacity: 1;
+  }
+}
+
+.tm-grid-surface {
+  background-image:
+    linear-gradient(rgba(148, 163, 184, 0.055) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(148, 163, 184, 0.055) 1px, transparent 1px);
+  background-size: 42px 42px;
+}

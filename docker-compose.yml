@@ -1,0 +1,57 @@
+name: nazm
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: trademaster
+      POSTGRES_PASSWORD: trademaster
+      POSTGRES_DB: trademaster_ai
+    ports:
+      - "5432:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U trademaster -d trademaster_ai"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      NODE_ENV: production
+      APP_URL: http://localhost:3000
+      DATABASE_URL: postgresql://trademaster:trademaster@db:5432/trademaster_ai?schema=public
+      REDIS_URL: redis://redis:6379
+      SESSION_SECRET: local-docker-change-this-session-secret-32-chars-min
+      AI_PROVIDER: local
+      # Local stack only: production closes sign-up unless an invite code is set or it is opened on purpose.
+      REGISTRATION_OPEN: "true"
+    ports:
+      - "3000:3000"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"fetch('http://localhost:3000/en/login').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))\""]
+      interval: 15s
+      timeout: 10s
+      retries: 20
+
+volumes:
+  db_data:

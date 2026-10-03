@@ -1,0 +1,2 @@
+/** The three.js classes the hero ribbon uses, named one by one so the bundler can leave the rest of the library out. */
+export { AdditiveBlending, BufferGeometry, CatmullRomCurve3, Color, DoubleSide, Float32BufferAttribute, GridHelper, Group, Line, LineBasicMaterial, LineDashedMaterial, Mesh, MeshBasicMaterial, PerspectiveCamera, Scene, SphereGeometry, TubeGeometry, Vector3, WebGLRenderer } from "three";

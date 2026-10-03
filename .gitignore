@@ -1,0 +1,46 @@
+# Secrets / env — NEVER commit. Keep only .env.example tracked.
+.env
+.env.local
+.env.*.local
+.env.production
+*.pem
+
+# Dependencies
+node_modules/
+.pnp/
+.pnp.js
+
+# Next.js build output
+.next/
+out/
+build/
+dist/
+
+# Test / tooling output
+coverage/
+test-results/
+playwright-report/
+playwright/.cache/
+*.tsbuildinfo
+next-env.d.ts
+
+# Prisma local artifacts
+prisma/*.db
+prisma/*.db-journal
+
+# Large local binaries (not source)
+dockerdmg/
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# Build-time demo flag written inside the Docker image
+.build-demo-mode
+

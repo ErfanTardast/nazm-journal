@@ -1,0 +1,367 @@
+{
+  "app": {
+    "title": "Trader Discipline OS",
+    "subtitle": "Plan. Journal. Review. Improve.",
+    "workspace": "Workspace",
+    "safetyTitle": "Risk reminder",
+    "educational": "Educational",
+    "safetyCopy": "Nazm helps review plans, journals, risk, context, and lessons. It is not a broker or financial advisor."
+  },
+  "auth": {
+    "email": "Email",
+    "password": "Password",
+    "name": "Name",
+    "signIn": "Sign in",
+    "signOut": "Sign out",
+    "register": "Create account",
+    "demoHint": "Seed demo: demo@nazm.example / DemoPassword123!",
+    "termsNotice": "By creating an account you agree to the",
+    "inviteCode": "Invite code (if you were given one)",
+    "inviteCodeRequired": "Invite code (required during the trial)",
+    "passwordHint": "At least 12 characters, with an uppercase letter (A-Z), a lowercase letter (a-z) and a digit (0-9).",
+    "totpCode": "Authentication code",
+    "noAccount": "No account yet?",
+    "haveAccount": "Already have an account?",
+    "forgotPassword": "Forgot your password? Contact the person who invited you to have it reset.",
+    "termsLink": "Terms of Use",
+    "errors": {
+      "INVALID_CREDENTIALS": "Email or password is incorrect.",
+      "EMAIL_ALREADY_EXISTS": "An account with this email already exists. Try signing in instead.",
+      "INVITE_REQUIRED": "The invite code is missing or not valid. Check the code you were given.",
+      "REGISTRATION_CLOSED": "Sign-up is closed right now.",
+      "RATE_LIMITED": "Too many attempts. Wait a minute and try again.",
+      "TWO_FACTOR_REQUIRED": "Enter the 6-digit code from your authenticator app to continue.",
+      "VALIDATION_ERROR": "Some fields are not valid. Check them and try again.",
+      "VALIDATION_email": "Enter a valid email address.",
+      "VALIDATION_name": "Enter your name (at least 2 characters).",
+      "VALIDATION_password": "The password does not meet the rules: at least 12 characters, with an uppercase letter (A-Z), a lowercase letter (a-z) and a digit (0-9).",
+      "VALIDATION_passwordRequired": "Enter your password.",
+      "GENERIC": "Something went wrong. Please try again in a moment.",
+      "NETWORK": "Could not reach the server. Check your connection and try again."
+    }
+  },
+  "nav": {
+    "primary": "Primary navigation",
+    "more": "More",
+    "skipToContent": "Skip to content",
+    "onboarding": "Setup",
+    "dashboard": "Home",
+    "reviews": "Review",
+    "ideas": "Ideas",
+    "plans": "Plan",
+    "journal": "Journal",
+    "import": "Import trades",
+    "watchlists": "Watchlists",
+    "risk": "Risk",
+    "portfolio": "Capital",
+    "strategies": "Strategies",
+    "performance": "Performance",
+    "backtests": "Scenario simulator",
+    "alerts": "Alerts",
+    "news": "News",
+    "ai": "AI Coach",
+    "learning": "Learning",
+    "demo": "Demo",
+    "tradingLab": "Trading Lab",
+    "admin": "Admin",
+    "settings": "Settings",
+    "upgrade": "Upgrade",
+    "groups": {
+      "trading": "Trading",
+      "analysis": "Analysis",
+      "system": "System",
+      "tools": "Tools",
+      "account": "Account"
+    },
+    "public": {
+      "how": "How it works",
+      "features": "Features",
+      "access": "Access",
+      "start": "Start",
+      "legal": "Legal",
+      "terms": "Terms of use",
+      "privacy": "Privacy"
+    }
+  },
+  "common": {
+    "save": "Save",
+    "create": "Create",
+    "delete": "Delete",
+    "emptyTitle": "No data yet",
+    "emptyDescription": "Create your first record to populate this view.",
+    "symbol": "Symbol",
+    "side": "Side",
+    "status": "Status",
+    "amount": "Amount",
+    "date": "Date"
+  },
+  "session": {
+    "title": "Trading Session",
+    "start": "Start trading session",
+    "starting": "Starting...",
+    "end": "Complete session",
+    "abandon": "Abandon session",
+    "stopping": "Stopping...",
+    "active": "Session active",
+    "noSession": "No active session",
+    "noSessionDesc": "Start a session to activate the discipline guard before you trade.",
+    "market": "Market",
+    "label": "Session window",
+    "labelPlaceholder": "e.g. London open",
+    "emotionalState": "Emotional state",
+    "emotionalStatePlaceholder": "e.g. Calm and focused",
+    "maxDailyLoss": "Max daily loss %",
+    "mistakeToAvoid": "One mistake to avoid today",
+    "mistakeToAvoidPlaceholder": "e.g. FOMO after a losing trade",
+    "notes": "Session notes",
+    "startedAt": "Started",
+    "quickJournal": "Quick journal",
+    "mistakeAlert": "Watch out for"
+  },
+  "pages": {
+    "dashboard": "Discipline Command Center",
+    "reviews": "Review",
+    "growth": "Growth OS",
+    "ideas": "Hypothesis Vault",
+    "plans": "Plan",
+    "journal": "Journal",
+    "import": "Import trades",
+    "watchlists": "Watchlists",
+    "risk": "Risk Calculators",
+    "portfolio": "Capital Tracking",
+    "strategies": "Strategy Builder",
+    "performance": "Performance Review",
+    "backtests": "Scenario simulator",
+    "alerts": "Alerts",
+    "news": "News and Market Context",
+    "ai": "AI Coach",
+    "learning": "Learning Mode",
+    "demo": "Conference Demo",
+    "admin": "Admin Overview",
+    "settings": "Settings"
+  },
+  "onboarding": {
+    "title": "Get started",
+    "subtitle": "Answer four quick questions and we'll set a discipline-first starting plan.",
+    "experienceLabel": "Experience",
+    "marketLabel": "Main market",
+    "issueLabel": "Biggest discipline issue",
+    "languageLabel": "Language",
+    "build": "Build my plan",
+    "saveSprint": "Save 7-day sprint",
+    "savingSprint": "Saving sprint...",
+    "planFor": "Plan for",
+    "defaultRisk": "Suggested risk per trade",
+    "focusAreas": "Focus areas",
+    "recommendedFeatures": "Start with",
+    "startingChecklist": "First steps",
+    "sprintTitle": "7-day discipline sprint",
+    "targetMistake": "Target mistake",
+    "sessionRule": "Session rule",
+    "scoreArc": "Score arc",
+    "starterPlaybook": "Starter playbook",
+    "openReview": "Open day-one review",
+    "openPlaybook": "Open starter playbook",
+    "exp": {
+      "beginner": "Beginner",
+      "intermediate": "Intermediate",
+      "advanced": "Advanced"
+    },
+    "issue": {
+      "overtrading": "Overtrading",
+      "revenge": "Revenge trading",
+      "moving_stops": "Moving stops",
+      "fomo": "FOMO entries",
+      "no_plan": "Trading without a plan",
+      "oversizing": "Oversizing"
+    },
+    "lang": {
+      "en": "English",
+      "fa": "Persian"
+    },
+    "intro": "A few short steps to get your journal going. Skip any time and come back later.",
+    "sprintHeading": "Optional: discipline sprint",
+    "dayLabel": "Day {n}",
+    "buildFailed": "We could not build the plan. Check your connection and try again.",
+    "saveFailed": "We could not save the sprint. Try again.",
+    "market": {
+      "crypto": "Crypto",
+      "forex": "Forex",
+      "stocks": "Stocks"
+    },
+    "feature": {
+      "trading-session": "Trading session",
+      "journal": "Journal",
+      "risk-calculator": "Risk calculator",
+      "learning": "Learning Mode",
+      "performance": "Performance review"
+    },
+    "flow": {
+      "progressLabel": "Setup progress",
+      "progress": "Step {n} of {total}",
+      "back": "Back",
+      "continue": "Continue",
+      "later": "Later",
+      "skip": "Skip for now",
+      "loading": "Loading your setup",
+      "loadFailed": "We could not load your saved setup, so this starts from the first step.",
+      "saveFailed": "We could not save that answer. Try again, or skip for now.",
+      "done": "Done",
+      "platform": {
+        "title": "How do you trade?",
+        "hint": "Pick the closest one. You can change it later.",
+        "mt5": {
+          "title": "MetaTrader 5 (MT5)",
+          "description": "I trade on MT5 and can export my history report."
+        },
+        "other": {
+          "title": "Another platform",
+          "description": "I can export my trades from my platform as a CSV file."
+        },
+        "manual": {
+          "title": "A manual journal",
+          "description": "I will enter my trades myself."
+        }
+      },
+      "goal": {
+        "title": "What is your goal?",
+        "hint": "Pick what matters most to you right now. Nothing is locked in.",
+        "discipline": {
+          "title": "Discipline",
+          "description": "Stick to my own rules."
+        },
+        "risk": {
+          "title": "Risk management",
+          "description": "Keep the risk of each trade and each day in check."
+        },
+        "performance": {
+          "title": "Performance review",
+          "description": "See how my trades have really gone."
+        },
+        "strategy": {
+          "title": "Strategy improvement",
+          "description": "Learn from how each of my strategies has done."
+        }
+      },
+      "history": {
+        "mt5": {
+          "title": "Import your history",
+          "body": "Upload your MT5 history report. You see a preview before anything is saved, and uploading the same report again adds no duplicates.",
+          "action": "Import my history"
+        },
+        "other": {
+          "title": "Import your trades from a file",
+          "body": "Export your trades from your platform as a CSV file, then upload it on the import page. You see a preview before anything is saved.",
+          "action": "Import a CSV file"
+        },
+        "manual": {
+          "title": "Add your first trade",
+          "body": "Open the journal and record a trade you already took, or write each trade down as you go.",
+          "action": "Open the journal"
+        },
+        "done": "You already have trades in your journal. This step is done."
+      },
+      "strategy": {
+        "title": "Create your first strategy",
+        "body": "A strategy is your written rules for one way of trading: when you enter, when you leave and how much you risk. Trades and plans can then be linked to it.",
+        "action": "Create a strategy",
+        "done": "You already have a strategy. This step is done."
+      },
+      "finish": {
+        "title": "See it filled in",
+        "body": "See what the screens look like once they hold trades, strategies and plans, or go straight to your own empty dashboard.",
+        "titleOwn": "Your dashboard",
+        "bodyOwn": "Your journal already holds your own trades. Open your dashboard to see them.",
+        "bodySample": "Sample data is already loaded. Open your dashboard to look around; remove it any time with the \"Remove sample data\" button at the top of the page.",
+        "sampleNote": "Sample data is made up and is not your own. Remove it any time with the \"Remove sample data\" button at the top of the page; it is also removed automatically as soon as you add your first real trade.",
+        "sample": "Show me with sample data",
+        "sampling": "Loading sample data...",
+        "empty": "Go to my empty dashboard",
+        "dashboard": "Go to my dashboard",
+        "sampleFailed": "We could not load the sample data. You can try again or go to your dashboard.",
+        "sampleNotEmpty": "Your journal already has trades of its own, so sample data was not loaded. Sample data is only for an empty journal."
+      }
+    }
+  },
+  "coaching": {
+    "playbookTitle": "Playbook adherence",
+    "mentorTitle": "Mentor report",
+    "adherence": "Adherence",
+    "trades": "Trades",
+    "watchFor": "Watch for",
+    "noPlaybooks": "No playbooks with trades yet.",
+    "loading": "Loading...",
+    "showPnl": "Show P&L",
+    "hidePnl": "Hide P&L",
+    "locked": "Mentor report is available on the Elite plan"
+  },
+  "tradingLab": {
+    "title": "Trading Lab",
+    "subtitle": "Read-only cockpit for Trading Lab OS.",
+    "loading": "Loading Trading Lab state",
+    "source": "source",
+    "statusTitle": "System status",
+    "statusDesc": "Read-only state from Trading Lab OS.",
+    "nextAction": "Next action",
+    "validation": "Validation",
+    "lastRun": "Last run",
+    "missedRun": "MISSED RUN",
+    "missingArtifacts": "Missing artifacts",
+    "capitalTitle": "Capital reality ($2,000 demo)",
+    "capitalDesc": "Order feasibility for the small account.",
+    "verdictLabel": "Verdict",
+    "accepted": "Accepted",
+    "rejected": "Rejected",
+    "researchOnly": "Research-only",
+    "tradingviewTitle": "TradingView bridge",
+    "tradingviewDesc": "TradingView is input-only. Trading Lab OS is the source of truth.",
+    "inputOnly": "input-only",
+    "totalAlerts": "Total alerts",
+    "noReconciliation": "No reconciliation yet.",
+    "latestReconciliation": "latest",
+    "researchTitle": "Research tribunal",
+    "researchDesc": "Default decision is REJECT. Promotion is rare and evidence-gated.",
+    "cards": "Cards",
+    "watch": "Watch",
+    "promoted": "Promoted",
+    "paperOnly": "Paper-only",
+    "noResearch": "No research cards yet.",
+    "reportTitle": "Daily operator report",
+    "reportDesc": "Read-only summary from Trading Lab OS.",
+    "noReport": "No operator report available yet.",
+    "commandsTitle": "Operator commands",
+    "commandsDesc": "Copy and run these yourself in your terminal. The app never runs them.",
+    "copy": "Copy command",
+    "safetyTitle": "Safety",
+    "safetyLive": "Live trading: disabled",
+    "safetyWebhook": "Webhook receiver: disabled",
+    "safetyBroker": "Broker execution: disabled",
+    "sourceOfTruth": "Trading Lab OS is the source of truth.",
+    "history": {
+      "title": "Daily Snapshot History",
+      "desc": "Local-first, read-only history from Trading Lab OS.",
+      "latest": "Latest snapshot",
+      "verdict": "Status",
+      "validation": "Validation",
+      "accepted": "Accepted orders",
+      "rejected": "Rejected orders",
+      "researchOnly": "Research-only",
+      "drawdown": "Drawdown",
+      "alerts": "TradingView alerts",
+      "cards": "Research cards",
+      "warnings": "Warnings",
+      "starting": "History is starting. More days will appear here as reports are generated.",
+      "empty": "No snapshot history yet."
+    },
+    "verdict": {
+      "READY": "Ready",
+      "GO": "Go",
+      "RISK_CHECK": "Risk check",
+      "NOT_READY": "Not ready",
+      "NO_GO": "No-go",
+      "BLOCKED": "Blocked",
+      "STALE": "Stale",
+      "UNKNOWN": "Unknown"
+    }
+  }
+}

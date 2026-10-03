@@ -1,0 +1,19 @@
+node_modules
+.next
+coverage
+playwright-report
+test-results
+.git
+.env
+.env.*
+!.env.example
+*.log
+npm-debug.log*
+Dockerfile
+docker-compose.yml
+# Not needed to build or run the app
+docs
+tests
+*.tmp.mts
+tsconfig.tsbuildinfo
+
