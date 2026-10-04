@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { apiErrorCode, authErrorMessage } from "@/features/auth/auth-errors";
 import { apiFetch } from "@/lib/api/client";
+import type { RegistrationMode } from "@/lib/auth/registration";
 import { safeNextPath } from "@/lib/auth/return-to";
 import { DEMO_MODE } from "@/lib/demo";
 import { t, type getMessages } from "@/lib/i18n/messages";
@@ -22,23 +23,37 @@ const requestAccessCopy = {
   fa: { question: "کد دعوت ندارید؟", link: "درخواست دسترسی" }
 } as const;
 
+/** Where sign-up is closed the form is replaced by this note: the administrator creates the accounts. */
+const closedCopy = {
+  en: "Accounts on this server are created by its administrator.",
+  fa: "حساب‌های این سرور را مدیر آن می‌سازد."
+} as const;
+
 type AuthPanelProps = {
   locale: Locale;
   messages: Messages;
   mode: "login" | "register";
+  /**
+   * How sign-up works on this server (registrationMode(), read by the page): "open" has no invite-code field, "closed"
+   * has no sign-up form (its link goes to the request-access page). Absent, the panel speaks for an invite-only server.
+   */
+  registration?: RegistrationMode;
   /** True while sign-up needs an invite code (the invite-only trial): the field is labelled and validated as required. */
   inviteRequired?: boolean;
   /** Where to go after signing in (from `?next=`); anything that is not a page of this language is ignored. */
   nextPath?: string;
 };
 
-export function AuthPanel({ locale, messages, mode, inviteRequired = false, nextPath }: AuthPanelProps) {
+export function AuthPanel({ locale, messages, mode, registration = "invite", inviteRequired = false, nextPath }: AuthPanelProps) {
   const router = useRouter();
   const returnTo = safeNextPath(nextPath, locale);
   const passwordHintId = useId();
-  const [email, setEmail] = useState(DEMO_MODE ? "demo@nazm.example" : "");
-  const [name, setName] = useState(DEMO_MODE ? "Demo Trader" : "");
-  const [password, setPassword] = useState(DEMO_MODE ? "DemoPassword123!" : "");
+  // The seeded demo login is a sign-in aid only: the register form always starts empty (the demo e-mail is taken, so a
+  // prefilled sign-up would only answer "already exists").
+  const prefillDemo = DEMO_MODE && mode === "login";
+  const [email, setEmail] = useState(prefillDemo ? "demo@nazm.example" : "");
+  const [name, setName] = useState("");
+  const [password, setPassword] = useState(prefillDemo ? "DemoPassword123!" : "");
   const [inviteCode, setInviteCode] = useState("");
   const [totpCode, setTotpCode] = useState("");
   const [needsTotp, setNeedsTotp] = useState(false);
@@ -73,6 +88,34 @@ export function AuthPanel({ locale, messages, mode, inviteRequired = false, next
     } finally {
       setLoading(false);
     }
+  }
+
+  // Closed sign-up: a form could only end in "sign-up is closed", so the page says who creates accounts and where to ask.
+  if (mode === "register" && registration === "closed") {
+    return (
+      <div className="mx-auto max-w-xl">
+        <Card>
+          <CardHeader>
+            <CardTitle>{t(messages, "auth.register")}</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-sm leading-6 text-muted-foreground">{closedCopy[locale]}</p>
+            <Link
+              href={`/${locale}/request-access`}
+              className="inline-flex min-h-11 w-full items-center justify-center rounded-md bg-primary px-4 text-sm font-semibold text-primary-foreground hover:bg-primary/90"
+            >
+              {requestAccessCopy[locale].link}
+            </Link>
+            <p className="text-center text-sm text-muted-foreground">
+              {t(messages, "auth.haveAccount")}{" "}
+              <Link href={`/${locale}/login`} className="font-semibold text-primary hover:underline">
+                {t(messages, "auth.signIn")}
+              </Link>
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    );
   }
 
   return (
@@ -124,7 +167,7 @@ export function AuthPanel({ locale, messages, mode, inviteRequired = false, next
                 />
               </label>
             ) : null}
-            {mode === "register" ? (
+            {mode === "register" && registration !== "open" ? (
               <div className="space-y-2">
                 <label className="block space-y-2 text-sm">
                   <span className="text-muted-foreground">{t(messages, inviteRequired ? "auth.inviteCodeRequired" : "auth.inviteCode")}</span>
@@ -155,16 +198,22 @@ export function AuthPanel({ locale, messages, mode, inviteRequired = false, next
                 </Link>
               </p>
             ) : null}
-            {DEMO_MODE ? <p className="text-xs text-muted-foreground">{t(messages, "auth.demoHint")}</p> : null}
+            {prefillDemo ? <p className="text-xs text-muted-foreground">{t(messages, "auth.demoHint")}</p> : null}
           </form>
           <p className="mt-4 text-center text-sm text-muted-foreground">
             {mode === "login" ? t(messages, "auth.noAccount") : t(messages, "auth.haveAccount")}{" "}
-            <Link
-              href={`/${locale}/${mode === "login" ? "register" : "login"}${returnTo ? `?next=${encodeURIComponent(returnTo)}` : ""}`}
-              className="font-semibold text-primary hover:underline"
-            >
-              {mode === "login" ? t(messages, "auth.register") : t(messages, "auth.signIn")}
-            </Link>
+            {mode === "login" && registration === "closed" ? (
+              <Link href={`/${locale}/request-access`} className="font-semibold text-primary hover:underline">
+                {requestAccessCopy[locale].link}
+              </Link>
+            ) : (
+              <Link
+                href={`/${locale}/${mode === "login" ? "register" : "login"}${returnTo ? `?next=${encodeURIComponent(returnTo)}` : ""}`}
+                className="font-semibold text-primary hover:underline"
+              >
+                {mode === "login" ? t(messages, "auth.register") : t(messages, "auth.signIn")}
+              </Link>
+            )}
           </p>
         </CardContent>
       </Card>

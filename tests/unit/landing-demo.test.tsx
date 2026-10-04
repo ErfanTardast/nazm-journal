@@ -33,7 +33,7 @@ describe("LandingScreen calls to action", () => {
       expect(hrefs).toContain(`/${locale}/register`);
       expect(hrefs).toContain(`/${locale}/login`);
       expect(hrefs.some((href) => href?.endsWith("/demo"))).toBe(false);
-      expect(container.textContent).not.toMatch(/demo user|conference demo|دموی کنفرانس|حساب نمایشی/i);
+      expect(container.textContent).not.toMatch(/demo user|demo walkthrough|conference|دموی کنفرانس|راهنمای نمایشی|حساب نمایشی/i);
       unmount();
     }
   });
@@ -42,5 +42,17 @@ describe("LandingScreen calls to action", () => {
     demo.DEMO_MODE = true;
     const { container } = render(<LandingScreen locale="en" />);
     expect([...container.querySelectorAll("a")].map((a) => a.getAttribute("href"))).toContain("/en/demo");
+  });
+
+  // Every non-production run has demo mode on, so `npm run dev` shows this button first; it must not say "conference".
+  it.each([
+    ["en", "Open the demo walkthrough"],
+    ["fa", "باز کردن راهنمای نمایشی"]
+  ] as const)("names the %s demo button as the walkthrough, never a conference", (locale, label) => {
+    demo.DEMO_MODE = true;
+    const { container } = render(<LandingScreen locale={locale} />);
+    const button = screen.getByRole("link", { name: label });
+    expect(button.getAttribute("href")).toBe(`/${locale}/demo`);
+    expect(container.textContent).not.toMatch(/conference|کنفرانس/i);
   });
 });

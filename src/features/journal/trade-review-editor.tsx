@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { apiFetch } from "@/lib/api/client";
+import { apiErrorText } from "@/lib/api/error-text";
 import type { Locale } from "@/lib/i18n/locales";
 
 type RuleResult = "followed" | "broken" | "mixed" | "unknown";
@@ -20,7 +21,14 @@ export type ReviewableTrade = {
 };
 
 /** Reviews written automatically (not by the trader) start with this tag. */
-const AUTOMATIC_TAG = "[خودکار · Claude]";
+const AUTOMATIC_TAG = "[خودکار]";
+/** The tag rows stored earlier carry (it named a vendor). Still recognised, and shown as AUTOMATIC_TAG. */
+const LEGACY_AUTOMATIC_TAG = "[خودکار · Claude]";
+
+const startsAutomatic = (lesson: string) => lesson.startsWith(AUTOMATIC_TAG) || lesson.startsWith(LEGACY_AUTOMATIC_TAG);
+/** A lesson as the screen shows it: a review stored with the old tag reads with the neutral one. */
+export const neutralTag = (lesson: string) =>
+  lesson.startsWith(LEGACY_AUTOMATIC_TAG) ? AUTOMATIC_TAG + lesson.slice(LEGACY_AUTOMATIC_TAG.length) : lesson;
 
 const faDigits = (value: number) => new Intl.NumberFormat("fa-IR").format(value);
 
@@ -33,6 +41,7 @@ const copy = {
     mistakes: "Mistakes (tags, comma separated)",
     applyToEntry: (legs: number) => `Apply to all ${legs} legs of this entry`,
     partial: (saved: number, total: number) => `Saved ${saved} of ${total} legs.`,
+    saveFailed: "Could not save the review.",
     automatic: "This review was written automatically from the report data. Edit it so it reflects your own judgment.",
     save: "Save review",
     saving: "Saving...",
@@ -46,6 +55,7 @@ const copy = {
     mistakes: "برچسب خطاها (با ویرگول جدا کنید)",
     applyToEntry: (legs: number) => `برای هر ${faDigits(legs)} پله‌ی این ورود اعمال شود`,
     partial: (saved: number, total: number) => `${faDigits(saved)} از ${faDigits(total)} پله ذخیره شد.`,
+    saveFailed: "مرور ذخیره نشد.",
     automatic: "این مرور به‌صورت خودکار از داده‌های گزارش نوشته شده است. ویرایشش کنید تا نظر خودتان باشد.",
     save: "ذخیره مرور",
     saving: "در حال ذخیره...",
@@ -76,7 +86,7 @@ export function TradeReviewEditor<T extends { id: string }>({
   onSaved: (trades: T[]) => void;
 }) {
   const c = copy[locale];
-  const lesson = trade.journalEntry?.lessonsLearned ?? trade.lessonsLearned ?? "";
+  const lesson = neutralTag(trade.journalEntry?.lessonsLearned ?? trade.lessonsLearned ?? "");
   const [open, setOpen] = useState(false);
   const [applyToEntry, setApplyToEntry] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -118,10 +128,11 @@ export function TradeReviewEditor<T extends { id: string }>({
       onSaved(saved);
       setOpen(false);
     } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
+      // The editor words the failure in the page language; the server's English sentence is not shown on the Persian page.
+      const text = apiErrorText(err, locale, c.saveFailed);
       // Legs saved before the failure are saved: show them, and say how far it got (a retry resaves them harmlessly).
       if (saved.length) onSaved(saved);
-      setError(saved.length ? `${c.partial(saved.length, legs.length)} ${message}` : message);
+      setError(saved.length ? `${c.partial(saved.length, legs.length)} ${text}` : text);
     } finally {
       setSaving(false);
     }
@@ -129,7 +140,7 @@ export function TradeReviewEditor<T extends { id: string }>({
 
   return (
     <form className="space-y-3 rounded-md border border-border bg-muted/20 p-3" onSubmit={save}>
-      {lesson.startsWith(AUTOMATIC_TAG) ? <p className="text-xs leading-5 text-warning">{c.automatic}</p> : null}
+      {startsAutomatic(lesson) ? <p className="text-xs leading-5 text-warning">{c.automatic}</p> : null}
       <Field label={c.verdict}>
         <Select name="ruleFollowed" defaultValue={trade.ruleFollowed}>
           {(Object.keys(c.verdicts) as RuleResult[]).map((value) => (

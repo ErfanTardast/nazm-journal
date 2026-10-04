@@ -48,7 +48,7 @@ const copy = {
           "When you buy a plan we store the plan, amount, payment method, the time you entered, and the bank reference number or USDT transaction hash you submit. We never store card numbers or wallet keys.",
           "Payment records are kept for accounting after you delete your account, unlinked from your name and email."
         ],
-        trial: ["No payments are taken during this trial, so no payment records are stored."]
+        paymentsOff: ["This server takes no payments, so no payment records are stored."]
       },
       {
         title: "Export and deletion",
@@ -106,7 +106,7 @@ const copy = {
           "وقتی پلنی می‌خرید، پلن، مبلغ، روش پرداخت، زمانی که وارد می‌کنید و شماره مرجع بانک یا هش تراکنش USDT را ذخیره می‌کنیم. شماره کارت یا کلید کیف پول هرگز ذخیره نمی‌شود.",
           "سوابق پرداخت پس از حذف حساب، برای حسابداری و بدون ارتباط با نام و ایمیل شما نگه داشته می‌شود."
         ],
-        trial: ["در این نسخه‌ی آزمایشی پرداختی انجام نمی‌شود و سابقه‌ی پرداختی ذخیره نمی‌شود."]
+        paymentsOff: ["این سرور پرداختی دریافت نمی‌کند، پس سابقه‌ی پرداختی ذخیره نمی‌شود."]
       },
       {
         title: "خروجی و حذف",
@@ -142,7 +142,7 @@ export default async function PrivacyPage({ params }: { params: Promise<{ locale
         {c.sections.map((section) => (
           <SectionPanel key={section.title} title={section.title}>
             <ul className="space-y-2 text-sm leading-6 text-muted-foreground">
-              {("trial" in section && !paymentsEnabled() ? section.trial : section.body).map((item) => (
+              {("paymentsOff" in section && !paymentsEnabled() ? section.paymentsOff : section.body).map((item) => (
                 <li key={item}>{item}</li>
               ))}
               {"contactLine" in section && contact ? (

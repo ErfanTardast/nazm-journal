@@ -1,0 +1,30 @@
+name: Feature request / پیشنهاد قابلیت
+description: An idea that would help traders plan, record or review. / ایده‌ای برای بهتر شدن برنامه‌ریزی، ثبت یا مرور معاملات.
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Nazm is a journal and discipline tool. It will not place orders, connect to a broker, give signals or give financial advice.
+        نظم ابزار ژورنال و انضباط است: سفارش ثبت نمی‌کند، به کارگزار وصل نمی‌شود، سیگنال یا توصیه‌ی مالی نمی‌دهد.
+  - type: textarea
+    id: problem
+    attributes:
+      label: The problem / مشکل
+      description: What are you trying to do, and what gets in the way? / چه می‌خواهید بکنید و چه چیزی مانع است؟
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: Your idea / پیشنهاد شما
+      description: What should Nazm do? Screens, words, examples. / نظم چه کند؟ صفحه، متن، مثال.
+    validations:
+      required: true
+  - type: checkboxes
+    id: scope
+    attributes:
+      label: Scope / دامنه
+      options:
+        - label: This does not add order execution, a broker connection, trading signals or financial advice. / این پیشنهاد ثبت سفارش، اتصال به کارگزار، سیگنال یا توصیه‌ی مالی اضافه نمی‌کند.
+          required: true

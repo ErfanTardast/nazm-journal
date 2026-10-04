@@ -116,6 +116,44 @@ describe("SettingsScreen in Persian", () => {
     expect(screen.getByText("متعادل").closest("div")!.className).toContain("border-success/30");
   });
 
+  // The trial leaves the payments category out, but a build with payments on sends it: it must read in Persian too.
+  describe("every category of the data inventory", () => {
+    const everyCategory = DATA_CATEGORIES.map(({ key, label, description, exportable }) => ({ key, label, description, exportable }));
+
+    it("has Persian text, payments included", async () => {
+      serve({ "GET /api/privacy/inventory": { categories: everyCategory } });
+      const { container } = await renderFa();
+      await screen.findByText(/^فهرست نمادها —/);
+      expect(englishLeaks(container, allowed)).toEqual([]);
+      expect(screen.getByText(/^پرداخت‌ها —/)).toBeInTheDocument();
+    });
+
+    it("writes the payments row with the glossary word for a plan, and says it is kept for accounting", async () => {
+      serve({ "GET /api/privacy/inventory": { categories: everyCategory } });
+      await renderFa();
+      const row = (await screen.findByText(/^پرداخت‌ها —/)).closest("li") as HTMLElement;
+      expect(row.textContent).toContain("پلن");
+      expect(row.textContent).toContain("حسابداری");
+      expect(row.textContent).not.toMatch(/برنامه(?!‌ریزی)/);
+    });
+
+    it("gives every category its own Persian label and description", async () => {
+      serve({ "GET /api/privacy/inventory": { categories: everyCategory } });
+      await renderFa();
+      await screen.findByText(/^فهرست نمادها —/);
+      const lines = screen.getAllByRole("listitem").map((item) => item.textContent ?? "");
+      for (const { key, label, description } of everyCategory) {
+        expect(lines.some((line) => line.includes(label) || line.includes(description)), `${key} still reads in English`).toBe(false);
+      }
+    });
+
+    it("still shows the English text on the English page", async () => {
+      serve({ "GET /api/privacy/inventory": { categories: everyCategory } });
+      render(<SettingsScreen locale="en" messages={en} />);
+      expect(await screen.findByText(/^Payments —/)).toBeInTheDocument();
+    });
+  });
+
   it("keeps unknown server options as they are instead of failing", async () => {
     const extra = JSON.parse(JSON.stringify(options));
     extra.ai.workflows.push({ value: "new_mode", label: "Brand New Mode", description: "Something new." });

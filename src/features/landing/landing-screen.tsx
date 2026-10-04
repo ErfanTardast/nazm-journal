@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { CheckCircle2, Download, EyeOff, Server, Trash2 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
+import type { RegistrationMode } from "@/lib/auth/registration";
 import { DEMO_MODE } from "@/lib/demo";
 import { isOpenAiConfigured } from "@/lib/env";
 import type { Locale } from "@/lib/i18n/locales";
@@ -16,14 +17,33 @@ const privacyIcons: LucideIcon[] = [Download, Trash2, EyeOff, Server];
 
 /**
  * The public front page: what the product is (a trader's operating system, not only a journal), its three strengths,
- * the loop it supports, and how to get in (invite-only private beta). The charts read one labelled sample month.
+ * the loop it supports, and how to get in. The charts read one labelled sample month.
  *
- * `externalAi` says whether the operator set up an outside AI service; the page only promises that the journal stays
- * on this server when it does.
+ * `registration` is the server's sign-up mode (see registrationMode()): with an invite code the page speaks of the
+ * private beta and the two ways in (the code, or a request); open, it offers plain "Create account"; closed, it says
+ * the administrator creates the accounts. Without it the page keeps the invite wording, the owner's own server.
+ * `freeTrial` is true when nothing is charged on this build (the page decides from the build's switch): only
+ * then does the private-beta line add "free during the trial", so the page never claims more than the code
+ * guarantees. `externalAi` says whether the operator set up an outside AI service; the page only promises that the
+ * journal stays on this server when it does.
  */
-export function LandingScreen({ locale, signedIn = false, externalAi = isOpenAiConfigured() }: { locale: Locale; signedIn?: boolean; externalAi?: boolean }) {
+export function LandingScreen({
+  locale,
+  signedIn = false,
+  externalAi = isOpenAiConfigured(),
+  registration = "invite",
+  freeTrial = false
+}: {
+  locale: Locale;
+  signedIn?: boolean;
+  externalAi?: boolean;
+  registration?: RegistrationMode;
+  freeTrial?: boolean;
+}) {
   const c = landingCopy[locale];
   const privacyPoints = [...c.privacy.points, externalAi ? c.privacy.coach.outside : c.privacy.coach.builtIn];
+  const betaLine = freeTrial ? `${c.beta} ${c.freeTrial}` : c.beta;
+  const heroNote = registration === "invite" ? betaLine : registration === "closed" ? c.closed.note : null;
 
   return (
     <div className="pb-6">
@@ -46,6 +66,26 @@ export function LandingScreen({ locale, signedIn = false, externalAi = isOpenAiC
                   {c.demoSignIn}
                 </Link>
               </>
+            ) : registration === "open" ? (
+              <>
+                {/* Anyone can sign up on this server: plain wording, nothing about invites or a beta. */}
+                <Link href={`/${locale}/register`} className={primaryButton}>
+                  {c.createAccount}
+                </Link>
+                <Link href={`/${locale}/login`} className={quietButton}>
+                  {c.signIn}
+                </Link>
+              </>
+            ) : registration === "closed" ? (
+              <>
+                {/* Sign-up is closed here: no sign-up button, only a request and sign-in. */}
+                <Link href={`/${locale}/request-access`} className={primaryButton}>
+                  {c.requestAccess}
+                </Link>
+                <Link href={`/${locale}/login`} className={quietButton}>
+                  {c.signIn}
+                </Link>
+              </>
             ) : (
               <>
                 {/* Sign-up is invite-only, so the two buttons name the two real ways in. */}
@@ -58,7 +98,7 @@ export function LandingScreen({ locale, signedIn = false, externalAi = isOpenAiC
               </>
             )}
           </div>
-          {signedIn || DEMO_MODE ? null : <p className="mt-4 text-sm text-muted-foreground">{c.beta}</p>}
+          {signedIn || DEMO_MODE || !heroNote ? null : <p className="mt-4 text-sm text-muted-foreground">{heroNote}</p>}
         </div>
         <EquityStage locale={locale} />
       </section>
@@ -116,30 +156,60 @@ export function LandingScreen({ locale, signedIn = false, externalAi = isOpenAiC
 
       {signedIn || DEMO_MODE ? null : (
         <section id="access" className="mt-16 rounded-lg border border-border bg-card/70 p-6 sm:p-8">
-          <h2 className="m-0 text-2xl font-bold sm:text-3xl">{c.access.title}</h2>
-          <p className="mt-2 max-w-2xl leading-8 text-muted-foreground">{c.access.body}</p>
-          <div className="mt-6 grid gap-6 md:grid-cols-2">
-            <div>
-              <p className="m-0 font-semibold">{c.access.haveCode}</p>
-              <p className="mb-4 mt-1 text-sm leading-7 text-muted-foreground">{c.access.haveCodeBody}</p>
-              <Link href={`/${locale}/register`} className={primaryButton}>
-                {c.withInvite}
-              </Link>
-            </div>
-            <div className="border-border max-md:border-t max-md:pt-6 md:border-s md:ps-6">
-              <p className="m-0 font-semibold">{c.access.noCode}</p>
-              <p className="mb-4 mt-1 text-sm leading-7 text-muted-foreground">{c.access.noCodeBody}</p>
-              <Link href={`/${locale}/request-access`} className={quietButton}>
-                {c.requestAccess}
-              </Link>
-            </div>
-          </div>
-          <p className="mb-0 mt-6 text-sm text-muted-foreground">
-            {c.access.already}{" "}
-            <Link href={`/${locale}/login`} className="font-semibold text-primary hover:underline">
-              {c.signIn}
-            </Link>
-          </p>
+          {registration === "open" ? (
+            <>
+              <h2 className="m-0 text-2xl font-bold sm:text-3xl">{c.open.title}</h2>
+              <p className="mt-2 max-w-2xl leading-8 text-muted-foreground">{c.open.body}</p>
+              <div className="mt-6 flex flex-wrap gap-3">
+                <Link href={`/${locale}/register`} className={primaryButton}>
+                  {c.createAccount}
+                </Link>
+                <Link href={`/${locale}/login`} className={quietButton}>
+                  {c.signIn}
+                </Link>
+              </div>
+            </>
+          ) : registration === "closed" ? (
+            <>
+              <h2 className="m-0 text-2xl font-bold sm:text-3xl">{c.closed.title}</h2>
+              <p className="mt-2 max-w-2xl leading-8 text-muted-foreground">{c.closed.body}</p>
+              <div className="mt-6 flex flex-wrap gap-3">
+                <Link href={`/${locale}/request-access`} className={primaryButton}>
+                  {c.requestAccess}
+                </Link>
+                <Link href={`/${locale}/login`} className={quietButton}>
+                  {c.signIn}
+                </Link>
+              </div>
+            </>
+          ) : (
+            <>
+              <h2 className="m-0 text-2xl font-bold sm:text-3xl">{c.access.title}</h2>
+              <p className="mt-2 max-w-2xl leading-8 text-muted-foreground">{c.access.body(freeTrial)}</p>
+              <div className="mt-6 grid gap-6 md:grid-cols-2">
+                <div>
+                  <p className="m-0 font-semibold">{c.access.haveCode}</p>
+                  <p className="mb-4 mt-1 text-sm leading-7 text-muted-foreground">{c.access.haveCodeBody}</p>
+                  <Link href={`/${locale}/register`} className={primaryButton}>
+                    {c.withInvite}
+                  </Link>
+                </div>
+                <div className="border-border max-md:border-t max-md:pt-6 md:border-s md:ps-6">
+                  <p className="m-0 font-semibold">{c.access.noCode}</p>
+                  <p className="mb-4 mt-1 text-sm leading-7 text-muted-foreground">{c.access.noCodeBody}</p>
+                  <Link href={`/${locale}/request-access`} className={quietButton}>
+                    {c.requestAccess}
+                  </Link>
+                </div>
+              </div>
+              <p className="mb-0 mt-6 text-sm text-muted-foreground">
+                {c.access.already}{" "}
+                <Link href={`/${locale}/login`} className="font-semibold text-primary hover:underline">
+                  {c.signIn}
+                </Link>
+              </p>
+            </>
+          )}
         </section>
       )}
 

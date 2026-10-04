@@ -14,6 +14,7 @@ import {
   ClipboardCheck,
   Compass,
   FileSpreadsheet,
+  ExternalLink,
   FlaskConical,
   Gem,
   Gauge,
@@ -36,8 +37,9 @@ import { SampleBanner, SampleMark } from "@/features/sample/sample-banner";
 import { hiddenNavHrefs } from "@/lib/nav-visibility";
 import { InstallAppPrompt } from "@/components/pwa/install-app-prompt";
 import { apiFetch } from "@/lib/api/client";
+import type { RegistrationMode } from "@/lib/auth/registration";
 import { DEMO_MODE } from "@/lib/demo";
-import { brand } from "@/lib/brand";
+import { DEFAULT_SOURCE_URL, brand } from "@/lib/brand";
 import { rememberLocale } from "@/lib/i18n/locale-cookie";
 import { localeConfig, type Locale } from "@/lib/i18n/locales";
 import { t } from "@/lib/i18n/messages";
@@ -52,6 +54,16 @@ type AppShellProps = {
   canAccessAdmin: boolean;
   /** The signed-in user, or null for a visitor: a visitor gets the public site frame, a user the workspace. */
   user: ShellUser | null;
+  /**
+   * How sign-up works on this server (registrationMode(), read by the layout): the public start button follows it.
+   * Absent, the shell speaks for an invite-only server, as it always did.
+   */
+  registration?: RegistrationMode;
+  /**
+   * Where the "Source code" links point (sourceUrl() in lib/brand, read by the layout from NEXT_PUBLIC_SOURCE_URL).
+   * Absent, the public repository.
+   */
+  sourceUrl?: string;
   children: React.ReactNode;
 };
 
@@ -66,6 +78,12 @@ const homeItem: NavItem = { href: "dashboard", key: "nav.dashboard", icon: Gauge
 
 /** Platform faces only: no web font in it, so drawing a word with it never downloads one. */
 const SYSTEM_FONT_STACK = '"Segoe UI", system-ui, Tahoma, sans-serif';
+
+/**
+ * The open-mode start button's one label, at every width. "Create account" squeezed the English name in the header to
+ * "Naz…" at 360px and 375px; this label leaves it whole and is also the link's accessible name.
+ */
+const SIGN_UP_SHORT = { en: "Sign up", fa: "ثبت‌نام" } as const;
 
 /** The workspace menu, grouped by what the trader is doing; the core loop (trading, analysis, system) comes first. */
 const navGroups: { key: string; items: NavItem[] }[] = [
@@ -131,15 +149,28 @@ function samePageIn(pathname: string | null, locale: Locale, target: Locale) {
   return `/${target}${pathname.slice(locale.length + 1)}`;
 }
 
-export function AppShell({ locale, messages, canAccessAdmin, user, children }: AppShellProps) {
+export function AppShell({ locale, messages, canAccessAdmin, user, registration = "invite", sourceUrl = DEFAULT_SOURCE_URL, children }: AppShellProps) {
   return user ? (
-    <WorkspaceShell locale={locale} messages={messages} canAccessAdmin={canAccessAdmin} user={user}>
+    <WorkspaceShell locale={locale} messages={messages} canAccessAdmin={canAccessAdmin} user={user} sourceUrl={sourceUrl}>
       {children}
     </WorkspaceShell>
   ) : (
-    <PublicShell locale={locale} messages={messages}>
+    <PublicShell locale={locale} messages={messages} registration={registration} sourceUrl={sourceUrl}>
       {children}
     </PublicShell>
+  );
+}
+
+/**
+ * A link to the public source code (the AGPL asks that people who use a hosted copy can get its source). It opens in
+ * a new tab, so the product's own page stays where it was; `className` sets how loud it is in each place.
+ */
+function SourceLink({ href, messages, className }: { href: string; messages: Messages; className?: string }) {
+  return (
+    <a href={href} target="_blank" rel="noopener noreferrer" className={cn("inline-flex items-center gap-1.5 hover:text-foreground", className)}>
+      {t(messages, "nav.sourceCode")}
+      <ExternalLink className="size-3 shrink-0" aria-hidden="true" />
+    </a>
   );
 }
 
@@ -176,15 +207,34 @@ function LanguageSwitch({ locale }: { locale: Locale }) {
 }
 
 /** The public site: a short menu about the product, sign-in, and a start button. No workspace navigation. */
-function PublicShell({ locale, messages, children }: { locale: Locale; messages: Messages; children: React.ReactNode }) {
-  // The landing renders its #access section only outside demo mode (a demo build has the walkthrough instead), so
-  // the menu must not link to an anchor that is not there.
+function PublicShell({
+  locale,
+  messages,
+  registration,
+  sourceUrl,
+  children
+}: {
+  locale: Locale;
+  messages: Messages;
+  registration: RegistrationMode;
+  sourceUrl: string;
+  children: React.ReactNode;
+}) {
+  // Where sign-up is open the start button is the way in itself ("Sign up", straight to the form), so the
+  // menu has no Access entry. Otherwise it goes to the landing's #access section, which says how to get in (an invite
+  // code, a request, or the administrator). That section is rendered only outside demo mode (a demo build has the
+  // walkthrough instead), so the menu must not link to an anchor that is not there.
+  const startsOnAccess = !DEMO_MODE && registration !== "open";
   const sections = [
     { href: `/${locale}#how`, key: "nav.public.how" },
     { href: `/${locale}#features`, key: "nav.public.features" },
-    ...(DEMO_MODE ? [] : [{ href: `/${locale}#access`, key: "nav.public.access" }])
+    ...(startsOnAccess ? [{ href: `/${locale}#access`, key: "nav.public.access" }] : [])
   ];
-  const startHref = DEMO_MODE ? `/${locale}/demo` : `/${locale}#access`;
+  const start = DEMO_MODE
+    ? { href: `/${locale}/demo`, key: "nav.public.start" }
+    : registration === "open"
+      ? { href: `/${locale}/register`, key: "auth.register" }
+      : { href: `/${locale}#access`, key: "nav.public.start" };
 
   return (
     <div className={cn("flex min-h-screen flex-col bg-background", localeConfig[locale].dir === "rtl" ? "dir-rtl" : "dir-ltr")}>
@@ -220,13 +270,15 @@ function PublicShell({ locale, messages, children }: { locale: Locale; messages:
             >
               {t(messages, "auth.signIn")}
             </Link>
-            {/* Sign-up needs an invite code, so the start button explains access before any form. It is the page's one
-                call to action, so it shows at every width (tighter padding on phones keeps 360px from overflowing). */}
+            {/* With an invite code or a closed sign-up the start button explains access before any form; where sign-up
+                is open it is "Sign up" (the longer "Create account" squeezed the name at 360px). One label at every
+                width, so the link's accessible name is the text people see. It is the page's one call to action, so
+                it shows at every width (tighter padding on phones keeps 360px from overflowing). */}
             <Link
-              href={startHref}
+              href={start.href}
               className="inline-flex min-h-11 items-center rounded-md bg-primary px-3 text-sm font-semibold text-primary-foreground hover:bg-primary/90 sm:px-4"
             >
-              {t(messages, "nav.public.start")}
+              {start.key === "auth.register" ? SIGN_UP_SHORT[locale] : t(messages, start.key)}
             </Link>
           </div>
         </div>
@@ -249,6 +301,7 @@ function PublicShell({ locale, messages, children }: { locale: Locale; messages:
             <Link href={`/${locale}/privacy`} className="hover:text-foreground">
               {t(messages, "nav.public.privacy")}
             </Link>
+            <SourceLink href={sourceUrl} messages={messages} />
           </nav>
         </div>
       </footer>
@@ -256,7 +309,7 @@ function PublicShell({ locale, messages, children }: { locale: Locale; messages:
   );
 }
 
-function WorkspaceShell({ locale, messages, canAccessAdmin, user, children }: AppShellProps & { user: ShellUser }) {
+function WorkspaceShell({ locale, messages, canAccessAdmin, user, sourceUrl = DEFAULT_SOURCE_URL, children }: AppShellProps & { user: ShellUser }) {
   const pathname = usePathname();
   const hidden = hiddenNavHrefs();
   const groups = navGroups
@@ -334,6 +387,7 @@ function WorkspaceShell({ locale, messages, canAccessAdmin, user, children }: Ap
               </div>
               <p className="mt-2 text-xs leading-5 text-muted-foreground">{t(messages, "app.safetyCopy")}</p>
             </div>
+            <SourceLink href={sourceUrl} messages={messages} className="mt-3 min-h-8 self-start px-1 text-xs text-muted-foreground" />
           </div>
         </aside>
 
@@ -395,6 +449,9 @@ function WorkspaceShell({ locale, messages, canAccessAdmin, user, children }: Ap
                         </NavGroup>
                       ))}
                     </nav>
+                    <div className="mt-1 border-t border-border px-2 pt-1">
+                      <SourceLink href={sourceUrl} messages={messages} className="min-h-11 text-xs text-muted-foreground" />
+                    </div>
                   </div>
                 </details>
                 {sampleActive ? <SampleMark locale={locale} className="hidden shrink-0 md:inline-flex" /> : null}

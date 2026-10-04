@@ -2,7 +2,9 @@ import type { Config } from "tailwindcss";
 
 const config: Config = {
   darkMode: ["class"],
-  content: ["./src/**/*.{ts,tsx}", "./tests/**/*.{ts,tsx}"],
+  // Only the app's own files. A test that names a class in a sentence (for example "max-[Npx]:sr-only") is read by
+  // Tailwind as that class, and its unit "Npx" made `next dev` warn about mixed screen units on the first request.
+  content: ["./src/**/*.{ts,tsx}"],
   theme: {
     extend: {
       colors: {

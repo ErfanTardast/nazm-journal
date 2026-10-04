@@ -11,6 +11,7 @@ import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { ContactEmail } from "@/features/access/contact-email-link";
 import { ApiClientError, apiFetch } from "@/lib/api/client";
+import type { RegistrationMode } from "@/lib/auth/registration";
 import type { Locale } from "@/lib/i18n/locales";
 import {
   ACCESS_NAME_MAX,
@@ -43,6 +44,15 @@ const copy = {
     privacyLine: "We use your email only to answer this request.",
     privacyLink: "Privacy policy",
     haveCode: "Have an invite code? Create an account",
+    // Closed sign-up: the server's administrator creates the accounts and answers requests; no invite code is promised.
+    closedDescription:
+      "Accounts on this server are created by its administrator. Leave a request here and the administrator will answer it at your email.",
+    closedSuccessBody: "The administrator of this server will answer at this address:",
+    haveAccount: "Already have an account? Sign in",
+    // Open sign-up: nothing to request.
+    openTitle: "Sign-up is open",
+    openDescription: "You can create an account on this server right away; there is nothing to request.",
+    createAccount: "Create account",
     errors: {
       name: `Enter your name (${ACCESS_NAME_MIN} to ${ACCESS_NAME_MAX} characters).`,
       email: "Enter a valid email address.",
@@ -75,6 +85,12 @@ const copy = {
     privacyLine: "ایمیل شما فقط برای پاسخ به همین درخواست استفاده می‌شود.",
     privacyLink: "حریم خصوصی",
     haveCode: "کد دعوت دارید؟ ساخت حساب",
+    closedDescription: "حساب‌های این سرور را مدیر آن می‌سازد. درخواست‌تان را اینجا ثبت کنید؛ مدیر به ایمیل شما پاسخ می‌دهد.",
+    closedSuccessBody: "مدیر این سرور به این ایمیل پاسخ می‌دهد:",
+    haveAccount: "حساب دارید؟ ورود",
+    openTitle: "ثبت‌نام باز است",
+    openDescription: "می‌توانید همین حالا در این سرور حساب بسازید؛ نیازی به درخواست نیست.",
+    createAccount: "ساخت حساب",
     errors: {
       name: "نام را وارد کنید (۲ تا ۸۰ کاراکتر).",
       email: "یک نشانی ایمیل معتبر وارد کنید.",
@@ -132,9 +148,50 @@ function describeFailure(error: unknown, c: Copy): { fields: FieldErrors; form?:
 /**
  * `contactEmail` is the public contact address (see contactEmail() in contact-email.ts), read on the server by the page.
  * Only when there is one does the success card say that deletion can be asked for there.
+ *
+ * `registration` is the server's sign-up mode (registrationMode(), read by the page). With an invite code (the default,
+ * the owner's server) the page asks for a request and promises an invite code. Where sign-up is open there is nothing
+ * to request, so the page says so and links to sign-up. Where it is closed the administrator answers requests, and no
+ * invite code is promised.
  */
-export function RequestAccessScreen({ locale, contactEmail = null }: { locale: Locale; contactEmail?: string | null }) {
+export function RequestAccessScreen({
+  locale,
+  contactEmail = null,
+  registration = "invite"
+}: {
+  locale: Locale;
+  contactEmail?: string | null;
+  registration?: RegistrationMode;
+}) {
+  return registration === "open" ? <SignUpIsOpen locale={locale} /> : <RequestForm locale={locale} contactEmail={contactEmail} registration={registration} />;
+}
+
+/** Sign-up is open on this server: the request form would promise an answer nobody needs to give, so it is not shown. */
+function SignUpIsOpen({ locale }: { locale: Locale }) {
   const c = copy[locale];
+  return (
+    <div className="mx-auto max-w-xl">
+      <PageHeader title={c.openTitle} description={c.openDescription} />
+      <Card>
+        <CardContent className="flex flex-wrap items-center gap-3">
+          <Link
+            href={`/${locale}/register`}
+            className="inline-flex min-h-11 items-center rounded-md bg-primary px-5 text-sm font-semibold text-primary-foreground hover:bg-primary/90"
+          >
+            {c.createAccount}
+          </Link>
+          <Link href={`/${locale}/login`} className="text-sm font-semibold text-primary hover:underline">
+            {c.haveAccount}
+          </Link>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+function RequestForm({ locale, contactEmail, registration }: { locale: Locale; contactEmail: string | null; registration: RegistrationMode }) {
+  const c = copy[locale];
+  const closed = registration === "closed";
   const digits = locale === "fa" ? "fa-IR" : "en-US";
   const ids = useId();
   const [name, setName] = useState("");
@@ -227,7 +284,7 @@ export function RequestAccessScreen({ locale, contactEmail = null }: { locale: L
 
   return (
     <div className="mx-auto max-w-xl">
-      <PageHeader title={c.title} description={c.description} />
+      <PageHeader title={c.title} description={closed ? c.closedDescription : c.description} />
       {sentTo ? (
         <Card>
           <CardContent className="space-y-3" role="status">
@@ -237,7 +294,7 @@ export function RequestAccessScreen({ locale, contactEmail = null }: { locale: L
                 {c.successTitle}
               </h2>
             </div>
-            <p className="text-sm leading-6 text-muted-foreground">{c.successBody}</p>
+            <p className="text-sm leading-6 text-muted-foreground">{closed ? c.closedSuccessBody : c.successBody}</p>
             <p dir="ltr" className="break-all text-start text-sm font-semibold text-foreground">
               {sentTo}
             </p>
@@ -353,9 +410,15 @@ export function RequestAccessScreen({ locale, contactEmail = null }: { locale: L
         </Link>
       </p>
       <p className="mt-3 text-center text-sm">
-        <Link href={`/${locale}/register`} className="font-semibold text-primary hover:underline">
-          {c.haveCode}
-        </Link>
+        {closed ? (
+          <Link href={`/${locale}/login`} className="font-semibold text-primary hover:underline">
+            {c.haveAccount}
+          </Link>
+        ) : (
+          <Link href={`/${locale}/register`} className="font-semibold text-primary hover:underline">
+            {c.haveCode}
+          </Link>
+        )}
       </p>
     </div>
   );

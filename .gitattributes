@@ -1,2 +1,5 @@
 # Shell scripts run in Linux containers: keep LF line endings on every checkout
 *.sh text eol=lf
+
+# Synthetic MT5 report: UTF-16LE like the real export, never touch its line endings
+docs/samples/*.html binary

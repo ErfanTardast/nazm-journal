@@ -1,93 +1,63 @@
-# Nazm — Release Evidence & Hardening
+# Releasing Nazm
 
-> Status: **release candidate**. This file is the release checklist + store/packaging metadata. It is
-> written evidence; it does not by itself ship anything. Programmatic readiness is computed by
-> `src/lib/release/readiness.ts` (`buildReleaseReadiness`) — blocking safety gates vs. advisory
-> store-release items.
+How a version of Nazm is cut, and how someone who hosts it upgrades. Versions follow [Semantic Versioning](https://semver.org/);
+while the version is 0.x, a minor version can change behaviour.
 
-## 1. Product identity
+## Cutting a version
 
-- **Name:** Nazm — the trader's discipline journal (Persian: نظم)
-- **One-liner (EN):** Plan, journal, review, and improve your trading discipline.
-- **One-liner (FA):** پلن، ژورنال، مرور و بهبود انضباط معاملاتی.
-- **What it is:** a bilingual (EN/FA, RTL) **review-and-discipline** journal. It helps a trader plan
-  setups, log trades, review adherence, and learn from mistakes.
-- **What it is NOT (enforced in product + copy):** not a broker, not a financial advisor, not a
-  source of entry/exit calls. The AI coach refuses entry-call requests before any provider call
-  (`src/lib/ai/guard.ts`). Scope is guarded by `tests/unit/product-scope.test.ts`.
+1. **Write the changelog section.** Add `## [X.Y.Z] - YYYY-MM-DD` at the top of `CHANGELOG.md`, with the changes grouped
+   under Added, Changed and Fixed, and the link line `[X.Y.Z]: ...releases/tag/vX.Y.Z` at the bottom. Say in the section
+   when the release adds a migration (a new folder in `prisma/migrations`) or a new setting (a new line in
+   `.env.example`), because a person who upgrades needs to know.
+2. **Set the version.** `npm version X.Y.Z --no-git-tag-version` changes the version in `package.json` and
+   `package-lock.json` together. A test fails when either differs from the newest changelog section.
+3. **Run the four checks** that CI runs, and wait for all of them to pass:
 
-## 2. Privacy & data
+   ```bash
+   npm run typecheck
+   npm run lint
+   npm run test
+   npm run build
+   ```
 
-- **Data inventory:** declared in `src/lib/privacy/data-inventory.ts` (`DATA_CATEGORIES`) — account,
-  onboarding profile, risk profile, playbooks, plans, imports, trades, journal, reviews, ideas,
-  sessions, watchlists, portfolios, alerts, backtests, uploads, AI audit log, security audit log, and
-  sign-in sessions.
-- **Export:** users download all their own data as JSON via `GET /api/users/me/export`
-  (Settings → Data & Privacy). `exportableCategories()` defines coverage (AI audit log is internal,
-  not exported).
-- **Privacy policy URL:** localized routes exist at `/en/privacy` and `/fa/privacy`; the production
-  store URL should point at the deployed `/en/privacy` route unless a separate legal site is used.
-- **Transparency:** Settings → Data & Privacy lists every category with an in-export/internal badge
-  (`GET /api/privacy/inventory`).
-- **Account deletion:** the read-only **preview** (`buildDeletionPreview`) lists what would be removed
-  and is irreversible (`reversible: false`). The executing mutation is now built as
-  `DELETE /api/users/me`: it requires the signed-in user's password, matching account email, and the
-  literal `DELETE` confirmation phrase; it clears the session cookie after deletion. User-scoped audit
-  logs are deleted before the account row, then an anonymous completion audit is kept without email or
-  user id.
-- **Password change:** `POST /api/users/me/password` (Settings, Password card): needs the current password; one
-  transaction stores the new hash, signs out every other device, keeps this one signed in and uses up open reset
-  tokens; limited per address and per account.
-- **Retention:** no third-party data sale; AI provider calls are gated + cached; missing AI config
-  falls back to the local coach (no external call).
+4. **Commit** the changelog and the version (`Release X.Y.Z`), push to `main`, and wait for CI to pass.
+5. **Tag** that commit and push the tag:
 
-## 3. PWA (advisory)
+   ```bash
+   git tag -a vX.Y.Z -m "Nazm X.Y.Z"
+   git push origin vX.Y.Z
+   ```
 
-Ship a web app manifest + icons before store packaging:
-- `manifest.webmanifest`: `name`, `short_name` ("Nazm"), `description`, `start_url` `/`,
-  `display: standalone`, `theme_color`/`background_color` (dark), `lang` per locale, `dir: rtl` for FA.
-- Icons: PNG binaries are present at `public/icons/icon-192.png`, `icon-256.png`, `icon-384.png`,
-  `icon-512.png`, and `icon-512-maskable.png` (SVG sources remain for reference).
-- Offline scope: read-only views degrade gracefully (the cockpit + settings already tolerate fetch
-  failure); no offline mutations.
+6. **Publish a GitHub release** for the tag, with the changelog section as its notes (Releases, then "Draft a new
+   release", or `gh release create vX.Y.Z --title "Nazm X.Y.Z" --notes-file <file with the section>`).
 
-## 4. TWA packaging (advisory, Android)
+## Upgrading a server you host
 
-Wrap the PWA as a Trusted Web Activity:
-1. Confirm a passing Lighthouse PWA installability check.
-2. `npx @bubblewrap/cli init --manifest https://<host>/manifest.webmanifest`.
-3. Set `applicationId` (e.g. `app.nazm.journal`), version code/name, and signing key.
-4. Publish `/.well-known/assetlinks.json` (Digital Asset Links) so the TWA opens without a URL bar.
-5. `bubblewrap build` → signed `.aab` for Play Console.
+1. **Read the changelog** from your version up to the new one. A migration or a new setting is named there.
+2. **Back up the database first**, for example
+   `pg_dump -Fc -h <host> -U <user> <database> > nazm-before-upgrade.dump`. Migrations only go forward: to go back,
+   restore the backup and run the older image.
+3. **Get the new code:** `git pull`, or `git fetch --tags` and `git checkout vX.Y.Z`.
+4. **Rebuild the image:** `docker build -t nazm .` (the compose file is a local stack, not for a server). The build
+   compiles `NEXT_PUBLIC_PAYMENTS_ENABLED` and `NEXT_PUBLIC_DEMO_MODE` in, so pass the same `--build-arg` values you
+   used before; empty keeps payments and demo mode off.
+5. **Start the new container** with the same environment variables. On start it runs `prisma migrate deploy`, which
+   applies the migrations that are new, and then starts the app. If a migration fails, the container exits without
+   starting: read its log, restore the backup if the database was changed, and report the problem.
+6. **Check it.** `GET /api/health` answers `{"status":"ok","database":"ok"}`. On a server with invite-only sign-up and
+   payments and demo mode off, `npm run verify:deploy -- https://your.host` repeats the checks from outside: security
+   headers, payment and demo routes hidden, sign-up needing the invite code, no stack traces in error answers, the
+   redirect from http to https, and that a forged `X-Forwarded-For` cannot get around the sign-in limit. It creates no
+   accounts, and its last check blocks sign-in from your address for about a minute.
 
-## 5. Store metadata (advisory)
+Changing `SESSION_SECRET` signs everyone out. Keep it the same across upgrades.
 
-- **Title:** Nazm: Discipline Journal
-- **Short description:** Plan, journal, and review your trades. Build discipline — no signals, no
-  advice.
-- **Full description:** review-focused only; describe planning, journaling, adherence, risk
-  calculators, learning mode. **Do not** mention entry/exit calls, guaranteed returns, or copy/social
-  trading (product-scope guard forbids these terms).
-- **Category:** Finance / Education. **Content rating:** everyone. **Privacy policy URL:** required.
+## The installable app (PWA)
 
-## 6. Release readiness gates
-
-Mapped to `buildReleaseReadiness` — **READY** requires all blocking gates:
-
-| Gate | Type | Status |
-| --- | --- | --- |
-| Privacy policy | blocking | **done** (`/[locale]/privacy`; deploy URL for stores) |
-| Account deletion path | blocking | **done** (`DELETE /api/users/me`, gated by password/email/DELETE) |
-| Data export | blocking | **done** (`/api/users/me/export`) |
-| AI refusal guard | blocking | **done** (`guard.ts`, tested) |
-| PWA manifest + assets | advisory | **done** (`app/manifest.ts` + PNG icon binaries) |
-| TWA packaging docs | advisory | **this file** |
-| Store metadata | advisory | drafted above |
-
-Current code-level verdict: **READY** for blocking release gates. Store submission still requires the
-deployed public privacy-policy URL, production hosting, signing assets, and normal store-console setup.
-
-## 7. Release evidence trail
-
-- Tests: `npm run typecheck && npm run lint && npm run test` (+ `npm run build` before tagging).
-- Safety scope: `tests/unit/product-scope.test.ts` + `src/lib/ai/guard.ts` refusal tests.
+- A web app manifest at `/manifest.webmanifest`: short name Nazm, standalone display, and the PNG icons in
+  `public/icons` (192, 256, 384 and 512 pixels, and a 512-pixel maskable icon).
+- A service worker, `public/sw.js`, that production builds register. It caches the offline page and static files, and
+  never caches API answers or pages that hold a signed-in person's data.
+- An offline page at `/offline`, in both languages, that the service worker shows when a page cannot be fetched.
+- Only GET requests are handled; nothing is queued while offline.
+- Browsers offer to install the app only over HTTPS (or on `localhost`).

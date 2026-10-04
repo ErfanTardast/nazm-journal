@@ -129,7 +129,8 @@ describe("getCardDetails", () => {
 });
 
 describe("USDT payments", () => {
-  const WALLET = "TQn9Y2khEsLJW1ChVWFMSMeRDow5KcbLSE";
+  // A made-up address in the right format (its checksum is invalid, so no wallet accepts it); never a real one.
+  const WALLET = "TNazmTestWa11etNotRea1XXXXXXXXXXXX";
 
   it("prices each plan in USDT as well", () => {
     expect(PAID_PLANS.pro.priceUsdt).toBeGreaterThan(0);

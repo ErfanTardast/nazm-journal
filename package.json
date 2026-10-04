@@ -2,7 +2,19 @@
   "name": "nazm",
   "version": "0.1.0",
   "private": true,
+  "description": "Nazm: the trader's discipline journal. Plan, log and review trades; Persian and English.",
   "license": "AGPL-3.0-or-later",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ErfanTardast/nazm-journal.git"
+  },
+  "bugs": {
+    "url": "https://github.com/ErfanTardast/nazm-journal/issues"
+  },
+  "homepage": "https://github.com/ErfanTardast/nazm-journal#readme",
+  "engines": {
+    "node": ">=24"
+  },
   "type": "module",
   "scripts": {
     "dev": "next dev --webpack",
@@ -20,6 +32,7 @@
     "db:seed": "npm run db:check && tsx prisma/seed.ts",
     "db:fix-mt5-times": "npm run db:check && tsx scripts/fix-mt5-times.ts",
     "db:repair-forex": "npm run db:check && tsx scripts/repair-forex-trades.ts",
+    "user:reset-password": "npm run db:check && tsx scripts/reset-password.ts",
     "db:studio": "npm run db:check && prisma studio",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "npm run db:migrate",
@@ -39,7 +52,7 @@
     "gsap": "^3.15.0",
     "ioredis": "^5.11.1",
     "lucide-react": "^1.17.0",
-    "next": "^16.2.9",
+    "next": "^16.3.8",
     "pg": "^8.21.0",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
@@ -62,7 +75,7 @@
     "@vitejs/plugin-react": "^6.0.2",
     "autoprefixer": "^10.5.0",
     "eslint": "^9.39.4",
-    "eslint-config-next": "^16.2.9",
+    "eslint-config-next": "^16.3.8",
     "jsdom": "^29.1.1",
     "postcss": "^8.5.15",
     "prisma": "^7.8.0",

@@ -11,7 +11,6 @@ vi.mock("@/lib/auth/session", () => ({ getCurrentUser: vi.fn(async () => null) }
 vi.mock("@/components/layout/app-shell", () => ({ AppShell: () => null }));
 
 import { metadata } from "@/app/layout";
-import manifest from "@/app/manifest";
 import { generateMetadata as localeMetadata } from "@/app/[locale]/layout";
 import PrivacyPage from "@/app/[locale]/privacy/page";
 import TermsPage from "@/app/[locale]/terms/page";
@@ -47,9 +46,6 @@ describe("the name in each language", () => {
     expect(String(metadata.title)).toBe("Nazm — the trader's discipline journal");
     expect(metadata.applicationName).toBe("Nazm");
     expect((metadata.appleWebApp as { title: string }).title).toBe("Nazm");
-    const m = manifest();
-    expect(m.name).toBe("Nazm — the trader's discipline journal");
-    expect(m.short_name).toBe("Nazm");
     const file = JSON.parse(read("public/manifest.webmanifest")) as { name: string; short_name: string };
     expect(file.name).toBe("Nazm — the trader's discipline journal");
     expect(file.short_name).toBe("Nazm");

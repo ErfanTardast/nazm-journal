@@ -10,10 +10,12 @@ RUN apt-get update \
 
 FROM base AS deps
 COPY package.json package-lock.json ./
-RUN npm ci
+# The cache mount keeps npm's downloads between builds (BuildKit, the default in Docker Desktop and Compose v2), so
+# a build that a dropped connection stopped resumes instead of downloading everything again.
+RUN --mount=type=cache,target=/root/.npm npm ci --no-audit --no-fund --fetch-retries=5 --fetch-retry-mintimeout=20000 --fetch-retry-maxtimeout=120000
 
 FROM deps AS builder
-# NEXT_PUBLIC_* values are compiled into the build; pass them as build args to change them (see README, Self-hosting).
+# NEXT_PUBLIC_* values are compiled into the build; pass them as build args to change them (README, Self-hosting).
 ARG NEXT_PUBLIC_PAYMENTS_ENABLED=""
 ARG NEXT_PUBLIC_DEMO_MODE=""
 ENV NEXT_PUBLIC_PAYMENTS_ENABLED=$NEXT_PUBLIC_PAYMENTS_ENABLED

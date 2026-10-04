@@ -9,9 +9,12 @@ type LandingCopy = {
   lead: string;
   withInvite: string;
   requestAccess: string;
+  createAccount: string;
   signIn: string;
   openDashboard: string;
+  /** The private-beta line under the hero buttons (invite mode); `freeTrial` follows it only when the page was told the trial is free. */
   beta: string;
+  freeTrial: string;
   openDemo: string;
   demoSignIn: string;
   demoUser: string;
@@ -56,7 +59,20 @@ type LandingCopy = {
     /** The fourth point, by where reviews run: this server's built-in rules, or an outside AI service the operator set up. */
     coach: { builtIn: { title: string; body: string }; outside: { title: string; body: string } };
   };
-  access: { title: string; body: string; haveCode: string; haveCodeBody: string; noCode: string; noCodeBody: string; already: string };
+  /** The access section on a server that asks for an invite code. `body` names the free trial only when the page was told it is free. */
+  access: {
+    title: string;
+    body: (freeTrial: boolean) => string;
+    haveCode: string;
+    haveCodeBody: string;
+    noCode: string;
+    noCodeBody: string;
+    already: string;
+  };
+  /** Sign-up is open on this server: no invite, beta or request wording. */
+  open: { title: string; body: string };
+  /** Sign-up is closed: the server's administrator creates the accounts. */
+  closed: { note: string; title: string; body: string };
 };
 
 export const landingCopy: Record<Locale, LandingCopy> = {
@@ -65,10 +81,12 @@ export const landingCopy: Record<Locale, LandingCopy> = {
     lead: "معاملات MT5 را وارد کنید، اشتباه‌های تکراری را پیدا کنید، ریسک را کنترل کنید و استراتژی خود را با دادهٔ واقعی خودتان بهتر کنید.",
     withInvite: "ثبت‌نام با کد دعوت",
     requestAccess: "درخواست دسترسی",
+    createAccount: "ساخت حساب",
     signIn: "ورود",
     openDashboard: "باز کردن محیط کار",
-    beta: "بتای خصوصی. در دورهٔ آزمایشی رایگان است.",
-    openDemo: "باز کردن دموی کنفرانس",
+    beta: "بتای خصوصی.",
+    freeTrial: "در دورهٔ آزمایشی رایگان است.",
+    openDemo: "باز کردن راهنمای نمایشی",
     demoSignIn: "ورود با حساب نمایشی",
     demoUser: "حساب نمایشی",
     openWorkspace: "باز کردن محیط کار",
@@ -148,12 +166,24 @@ export const landingCopy: Record<Locale, LandingCopy> = {
     },
     access: {
       title: "دسترسی",
-      body: "اپ نظم در بتای خصوصی است و در دورهٔ آزمایشی رایگان است. ثبت‌نام فقط با کد دعوت انجام می‌شود.",
+      body: (freeTrial) =>
+        freeTrial
+          ? "اپ نظم در بتای خصوصی است و در دورهٔ آزمایشی رایگان است. ثبت‌نام فقط با کد دعوت انجام می‌شود."
+          : "اپ نظم در بتای خصوصی است. ثبت‌نام فقط با کد دعوت انجام می‌شود.",
       haveCode: "کد دعوت دارم",
       haveCodeBody: "با کد دعوت حساب بسازید و از همین امروز معاملات خود را وارد کنید.",
       noCode: "کد دعوت ندارم",
       noCodeBody: "درخواست بدهید. اگر جا باز شود، کد دعوت به ایمیل شما فرستاده می‌شود.",
       already: "حساب دارید؟"
+    },
+    open: {
+      title: "شروع کنید",
+      body: "ثبت‌نام در این سرور باز است. برای وارد کردن معاملات‌تان حساب بسازید، یا اگر حساب دارید وارد شوید."
+    },
+    closed: {
+      note: "حساب‌های این سرور را مدیر آن می‌سازد.",
+      title: "دسترسی",
+      body: "حساب‌های این سرور را مدیر آن می‌سازد. درخواست‌تان را ثبت کنید تا مدیر به آن پاسخ دهد."
     }
   },
   en: {
@@ -161,10 +191,12 @@ export const landingCopy: Record<Locale, LandingCopy> = {
     lead: "Import your MT5 trades, find the mistakes you keep repeating, keep risk inside your limits, and improve your strategy with your own data.",
     withInvite: "Sign up with an invite code",
     requestAccess: "Request access",
+    createAccount: "Create account",
     signIn: "Sign in",
     openDashboard: "Open dashboard",
-    beta: "Private beta. Free during the trial.",
-    openDemo: "Open conference demo",
+    beta: "Private beta.",
+    freeTrial: "Free during the trial.",
+    openDemo: "Open the demo walkthrough",
     demoSignIn: "Sign in with demo user",
     demoUser: "Demo user",
     openWorkspace: "Open workspace",
@@ -244,12 +276,22 @@ export const landingCopy: Record<Locale, LandingCopy> = {
     },
     access: {
       title: "Access",
-      body: "Nazm is in private beta and free during the trial. Sign-up needs an invite code.",
+      body: (freeTrial) =>
+        freeTrial ? "Nazm is in private beta and free during the trial. Sign-up needs an invite code." : "Nazm is in private beta. Sign-up needs an invite code.",
       haveCode: "I have an invite code",
       haveCodeBody: "Create your account with the code and import your trades today.",
       noCode: "I don't have a code",
       noCodeBody: "Send a request. If a place opens, the invite code is sent to your email.",
       already: "Already have an account?"
+    },
+    open: {
+      title: "Get started",
+      body: "Sign-up is open on this server. Create an account to import your trades, or sign in if you already have one."
+    },
+    closed: {
+      note: "Accounts on this server are created by its administrator.",
+      title: "Access",
+      body: "Accounts on this server are created by its administrator. Send a request and the administrator will answer it."
     }
   }
 };

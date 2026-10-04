@@ -1,7 +1,7 @@
 {
   "name": "Nazm — the trader's discipline journal",
   "short_name": "Nazm",
-  "description": "A bilingual Discipline OS for traders: plan, journal, review behavior, and improve discipline.",
+  "description": "Plan, journal, review, and improve your trading discipline.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

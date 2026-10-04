@@ -7,7 +7,13 @@ vi.mock("@/features/admin/admin-screen", () => ({
       admin screen
       {children}
     </div>
-  )
+  ),
+  AdminForbidden: () => <div>no admin access</div>
+}));
+// The page decides who may see the overview before it mounts it: these tests are about an admin looking at it
+// (who else may, and what they see instead, is in admin-page-access.test.tsx).
+vi.mock("@/lib/auth/session", () => ({
+  getCurrentUser: vi.fn(async () => ({ id: "u1", roles: [{ role: { name: "admin", permissions: [] } }] }))
 }));
 vi.mock("@/features/admin/access-requests-panel", () => ({ AccessRequestsPanel: ({ locale }: { locale: string }) => <div>access requests panel {locale}</div> }));
 vi.mock("@/features/billing/admin-payments-panel", () => ({ AdminPaymentsPanel: () => <div>payments panel</div> }));

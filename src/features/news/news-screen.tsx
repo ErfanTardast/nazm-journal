@@ -240,8 +240,9 @@ export function NewsScreen({ locale, messages }: { locale: Locale; messages: Mes
 
       {error ? <p role="alert" className="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">{error}</p> : null}
 
-      <div className="grid gap-4 xl:grid-cols-[minmax(0,1.1fr)_420px]">
-        <div className="space-y-4">
+      {/* grid-cols-1 and min-w-0: the table scrolls inside its card instead of widening the page on a phone. */}
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1.1fr)_420px]">
+        <div className="min-w-0 space-y-4">
           <SectionPanel
             title={c.filters}
             description={c.filtersDesc}
@@ -305,7 +306,7 @@ export function NewsScreen({ locale, messages }: { locale: Locale; messages: Mes
           </SectionPanel>
         </div>
 
-        <div className="space-y-4">
+        <div className="min-w-0 space-y-4">
           <SectionPanel
             title={c.selected}
             description={c.selectedDesc}

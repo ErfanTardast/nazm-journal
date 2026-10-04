@@ -8,14 +8,14 @@ export function getDatabaseUrl() {
   }
 
   if (process.env.NEXT_PHASE === "phase-production-build") {
-    return "postgresql://trademaster:trademaster@localhost:5432/trademaster_ai?schema=public";
+    return "postgresql://nazm:nazm@localhost:5432/nazm?schema=public";
   }
 
   if (process.env.NODE_ENV === "production") {
     throw new Error("DATABASE_URL is required in production");
   }
 
-  return "postgresql://trademaster:trademaster@localhost:5432/trademaster_ai?schema=public";
+  return "postgresql://nazm:nazm@localhost:5432/nazm?schema=public";
 }
 
 export function getRedisUrl() {

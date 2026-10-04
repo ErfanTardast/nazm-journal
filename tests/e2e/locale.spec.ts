@@ -1,7 +1,8 @@
 import { expect, test } from "@playwright/test";
 import { readFileSync } from "node:fs";
 
-const faMessages = JSON.parse(readFileSync("src/messages/fa.json", "utf8")) as {
+// The path is relative to this file, not to the folder Playwright was started from.
+const faMessages = JSON.parse(readFileSync(new URL("../../src/messages/fa.json", import.meta.url), "utf8")) as {
   auth: { signIn: string };
 };
 

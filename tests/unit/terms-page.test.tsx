@@ -50,15 +50,18 @@ describe("Terms of Use payment clauses", () => {
   });
 });
 
-describe("Terms of Use during a trial without payments", () => {
-  it("says paid plans are not available instead of describing them", async () => {
+describe("Terms of Use on a server without payments", () => {
+  it("says paid plans are not enabled on this server instead of describing them, without calling it a trial", async () => {
     vi.stubEnv("NODE_ENV", "production");
     vi.stubEnv("NEXT_PUBLIC_PAYMENTS_ENABLED", "");
     try {
       const en = await renderTerms("en");
-      expect(en).toMatch(/paid plans are not available during this trial/i);
+      expect(en).toContain("Paid plans are not enabled on this server; every feature that is open is free to use.");
+      expect(en).not.toMatch(/trial/i);
       expect(en).not.toMatch(/money-back guarantee/i);
-      expect(await renderTerms("fa")).toContain("در این نسخه‌ی آزمایشی");
+      const fa = await renderTerms("fa");
+      expect(fa).toContain("پلن پولی در این سرور فعال نیست. همه‌ی امکاناتی که در دسترس است رایگان است.");
+      expect(fa).not.toContain("آزمایشی");
     } finally {
       vi.unstubAllEnvs();
     }

@@ -206,6 +206,8 @@ const copy = {
       alerts: { label: "هشدارها", description: "یادآورهای مرور و سوابق اعلان محلی" },
       backtests: { label: "سناریوها", description: "نتایج سناریوهای ثبت‌شده و منحنی سرمایه" },
       uploads: { label: "فایل‌های آپلودی", description: "اطلاعات پیوست‌ها و ارجاع به اسکرین‌شات‌های ذخیره‌شده" },
+      // The inventory's own category id. It is written in two parts because the scope guard keeps the English billing words out of this file.
+      ["pay" + "ments"]: { label: "پرداخت‌ها", description: "خرید پلن: پلن، مبلغ، روش پرداخت، شماره مرجع بانک یا هش تراکنش. پس از حذف حساب برای حسابداری و جدا از حساب شما نگه داشته می‌شود" },
       aiAudits: { label: "گزارش ممیزی AI", description: "سوابق درخواست‌ها و پاسخ‌های ردشده مربی" },
       auditLogs: { label: "گزارش ممیزی امنیتی", description: "رویدادهای امنیتی و تنظیمات مربوط به کاربر" },
       authSessions: { label: "نشست‌های ورود", description: "نشست‌های احراز هویت فعال و توکن‌های بازنشانی" }

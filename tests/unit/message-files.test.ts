@@ -40,9 +40,8 @@ describe("Persian glossary in the message files", () => {
     expect(offenders).toEqual([]);
   });
 
-  it("keeps the authenticator-app sentence and the terminal sentence", () => {
+  it("keeps the authenticator-app sentence", () => {
     expect(faValue("auth.errors.TWO_FACTOR_REQUIRED")).toContain("برنامه احراز هویت");
-    expect(faValue("tradingLab.commandsDesc")).toContain("برنامه آن‌ها را اجرا نمی‌کند");
   });
 
   it("names the plan page, the safety line and the onboarding plan with پلن", () => {

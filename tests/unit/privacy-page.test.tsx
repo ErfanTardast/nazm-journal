@@ -37,8 +37,8 @@ describe("Privacy Policy payment records", () => {
   });
 });
 
-describe("Privacy Policy during the trial", () => {
-  it("says no payments are taken while payments are off, instead of describing plan purchases", async () => {
+describe("Privacy Policy on a server with payments off", () => {
+  it("says the server takes no payments, without calling it a trial, instead of describing plan purchases", async () => {
     vi.stubEnv("NODE_ENV", "production");
     try {
       for (const locale of ["en", "fa"]) {
@@ -46,9 +46,13 @@ describe("Privacy Policy during the trial", () => {
         expect(text).not.toMatch(/USDT|buy a plan|پلنی می‌خرید/);
         cleanup();
       }
-      expect(await renderPrivacy("en")).toMatch(/No payments are taken during this trial/);
+      const en = await renderPrivacy("en");
+      expect(en).toContain("This server takes no payments, so no payment records are stored.");
+      expect(en).not.toMatch(/during this trial/i);
       cleanup();
-      expect(await renderPrivacy("fa")).toContain("در این نسخه‌ی آزمایشی پرداختی");
+      const fa = await renderPrivacy("fa");
+      expect(fa).toContain("این سرور پرداختی دریافت نمی‌کند، پس سابقه‌ی پرداختی ذخیره نمی‌شود.");
+      expect(fa).not.toContain("نسخه‌ی آزمایشی");
     } finally {
       vi.unstubAllEnvs();
     }

@@ -52,7 +52,7 @@ const copy = {
           "Your first paid plan has a money-back guarantee: ask for a refund within 7 days of approval and you get the full amount back, in the same way you paid (USDT refunds go to a TRC20 address you give us).",
           "If you are charged but your plan is not activated, contact support and it will be activated or the payment returned."
         ],
-        trial: ["Paid plans are not available during this trial. Every feature open in the trial is free to use."]
+        paymentsOff: ["Paid plans are not enabled on this server; every feature that is open is free to use."]
       },
       {
         title: "Your data",
@@ -115,7 +115,7 @@ const copy = {
           "اولین پلن پولی شما ضمانت بازگشت وجه دارد: تا ۷ روز بعد از تأیید، درخواست بازگشت بدهید تا کل مبلغ به همان روش پرداخت برگردد (بازگشت USDT به آدرس TRC20‌ای که اعلام می‌کنید).",
           "اگر مبلغ از حساب شما کسر شد ولی پلن فعال نشد، با پشتیبانی تماس بگیرید تا پلن فعال شود یا مبلغ برگردانده شود."
         ],
-        trial: ["پلن پولی در این نسخه‌ی آزمایشی فعال نیست. همه‌ی امکاناتی که در نسخه‌ی آزمایشی باز است رایگان است."]
+        paymentsOff: ["پلن پولی در این سرور فعال نیست. همه‌ی امکاناتی که در دسترس است رایگان است."]
       },
       {
         title: "داده‌های شما",
@@ -148,7 +148,7 @@ export default async function TermsPage({ params }: { params: Promise<{ locale: 
         {c.sections.map((section) => (
           <SectionPanel key={section.title} title={section.title}>
             <ul className="space-y-2 text-sm leading-6 text-muted-foreground">
-              {("trial" in section && !paymentsEnabled() ? section.trial : section.body).map((item) => (
+              {("paymentsOff" in section && !paymentsEnabled() ? section.paymentsOff : section.body).map((item) => (
                 <li key={item}>{item}</li>
               ))}
             </ul>

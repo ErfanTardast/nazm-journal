@@ -117,7 +117,7 @@ describe("AuthPanel shows localized messages for API error codes", () => {
 
   it.each([
     ["register", "EMAIL_ALREADY_EXISTS", 409, "An account with this email already exists"],
-    ["register", "INVITE_REQUIRED", 403, "A valid invite code is needed to sign up during the trial"],
+    ["register", "INVITE_REQUIRED", 403, "A valid invite code is needed to sign up on this server"],
     ["register", "REGISTRATION_CLOSED", 403, "Sign-up is closed"],
     ["register", "RATE_LIMITED", 429, "Too many requests. Please try again later."],
     ["login", "INVALID_CREDENTIALS", 401, "Invalid email or password"],

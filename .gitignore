@@ -28,9 +28,6 @@ next-env.d.ts
 prisma/*.db
 prisma/*.db-journal
 
-# Large local binaries (not source)
-dockerdmg/
-
 # Logs
 *.log
 npm-debug.log*

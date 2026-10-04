@@ -18,23 +18,22 @@ const KEPT: Array<{ why: string; pattern: RegExp; files: string[] }> = [
   {
     why: "local database name",
     pattern: /trademaster_ai/g,
-    files: [".env.example", "docker-compose.yml", "README.md", "scripts/db-check.mjs", "src/lib/env.ts", "start-app.cmd", "start-app-prod.cmd"]
+    files: [".env.example", "docker-compose.yml", "README.md", "scripts/db-check.mjs", "src/lib/env.ts"]
   },
   { why: "local database user and password in a connection string", pattern: /trademaster:trademaster/g, files: [".env.example", "docker-compose.yml", "src/lib/env.ts"] },
   { why: "stored import source value", pattern: /trademaster_csv/g, files: ["src/lib/services/trades.ts"] },
-  { why: "the hosting provider's app name", pattern: /`trademaster-ai`/g, files: ["docs/DEPLOYMENT.md"] },
   { why: "the hosting provider's address", pattern: /trademaster-ai\.example-host\.net/g, files: ["scripts/verify-deploy.ts"] },
   { why: "the local compose database's user and password", pattern: /POSTGRES_(USER|PASSWORD): trademaster\b/g, files: ["docker-compose.yml"] },
   {
-    why: "the database user the launchers' health check asks",
+    why: "the database user the health check asks",
     pattern: /-U trademaster /g,
-    files: ["docker-compose.yml", "start-app.cmd", "start-app-prod.cmd"]
+    files: ["docker-compose.yml"]
   },
   { why: "former demo login, renamed in place by the seed", pattern: /demo@trademaster\.ai/g, files: ["src/lib/services/demo-account.ts"] }
 ];
 
-// History and the specs it points to keep the name the work was done under.
-const HISTORY = ["docs/DEVELOPMENT_PLAN.md", "docs/superpowers/"];
+// Files allowed to keep the old name as history (none in this copy).
+const HISTORY: string[] = [];
 
 const TEXT_FILE = /\.(ts|tsx|js|mjs|json|md|css|svg|webmanifest|html|txt|yml|yaml|cmd|toml)$/;
 
@@ -55,6 +54,11 @@ const scanned = [
   ...walk("scripts"),
   "prisma/seed.ts",
   "README.md",
+  "CONTRIBUTING.md",
+  "SECURITY.md",
+  "CHANGELOG.md",
+  ...walk(".github/ISSUE_TEMPLATE"),
+  ".github/pull_request_template.md",
   "package.json",
   ".env.example",
   "docker-compose.yml",
@@ -100,7 +104,7 @@ describe("the old product name is gone", () => {
     expect(oldNameLines("Open trademaster-ai.example-host.net to sign in", page)).toHaveLength(1);
     expect(oldNameLines("app `trademaster-ai`", page)).toHaveLength(1);
     expect(oldNameLines("pg_isready -U trademaster -d db", page)).toHaveLength(1);
-    expect(oldNameLines("Use trademaster_ai as the database", "docs/SECURITY.md")).toHaveLength(1);
+    expect(oldNameLines("Use trademaster_ai as the database", "SECURITY.md")).toHaveLength(1);
     expect(oldNameLines("demo@trademaster.ai", "prisma/seed.ts")).toHaveLength(1);
     // The files that really hold them are still let through.
     expect(oldNameLines("pg_isready -U trademaster -d trademaster_ai", "docker-compose.yml")).toHaveLength(0);
@@ -146,11 +150,11 @@ describe("the old product name is gone", () => {
     expect(found).toEqual([]);
   }, SCAN_TIMEOUT);
 
-  // The release notes' one-liners are store metadata. The Persian one follows the glossary (پلن, never «برنامه», for a
-  // plan) and does not put «نظم» where it could be read as the product's name.
-  it("keeps the store one-liners in the glossary's words", () => {
-    const release = contents.get("docs/RELEASE.md") ?? "";
-    const line = release.split(/\r?\n/).find((text) => text.startsWith("- **One-liner (FA):**")) ?? "";
+  // The product requirements document carries the one-line description in both languages. The Persian one follows the
+  // glossary (پلن, never «برنامه», for a plan) and does not put «نظم» where it could be read as the product's name.
+  it("keeps the product one-liners in the glossary's words", () => {
+    const prd = contents.get("docs/PRD.md") ?? "";
+    const line = prd.split(/\r?\n/).find((text) => text.startsWith("- **One-liner (FA):**")) ?? "";
     expect(line).toBe("- **One-liner (FA):** پلن، ژورنال، مرور و بهبود انضباط معاملاتی.");
     expect(line).not.toContain("برنامه");
     expect(line).not.toContain("نظم");

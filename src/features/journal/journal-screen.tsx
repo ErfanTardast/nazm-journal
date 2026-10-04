@@ -43,7 +43,7 @@ import { estimateDataUrlBytes, fileToCompressedDataUrl, validateImageFile } from
 import { entryLegIds } from "@/lib/calculations/ladders";
 import { formatMoney, formatPercent } from "@/lib/i18n/format";
 import { localDateTimeToIso, toLocalDateTimeValue } from "@/lib/time/local-datetime";
-import { TradeReviewEditor } from "./trade-review-editor";
+import { neutralTag, TradeReviewEditor } from "./trade-review-editor";
 import { t, type getMessages } from "@/lib/i18n/messages";
 import type { Locale } from "@/lib/i18n/locales";
 import { splitListInput } from "@/lib/text/split-list";
@@ -502,9 +502,10 @@ export function JournalScreen({ locale, messages }: { locale: Locale; messages: 
         trade.strategy?.name,
         trade.preTradeNotes,
         trade.postTradeNotes,
-        trade.lessonsLearned,
+        // A review stored with the old automatic tag is searched as it is shown, with the neutral one.
+        trade.lessonsLearned ? neutralTag(trade.lessonsLearned) : null,
         trade.journalEntry?.notes,
-        trade.journalEntry?.lessonsLearned,
+        trade.journalEntry?.lessonsLearned ? neutralTag(trade.journalEntry.lessonsLearned) : null,
         ...(trade.journalEntry?.tags ?? []),
         ...(trade.journalEntry?.tags ?? []).map((tag) => systemLabel(c.systemTags, tag)),
         ...(trade.journalEntry?.mistakes ?? [])
@@ -725,8 +726,9 @@ export function JournalScreen({ locale, messages }: { locale: Locale; messages: 
         </div>
       ) : null}
 
-      <div className="grid gap-4 xl:grid-cols-[minmax(0,1.25fr)_minmax(360px,0.75fr)]">
-        <div className="space-y-4">
+      {/* grid-cols-1 and min-w-0: without them a wide table or long line widens the page on a phone. */}
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1.25fr)_minmax(360px,0.75fr)]">
+        <div className="min-w-0 space-y-4">
           {/* Nothing to filter or list on an empty journal: the empty state above is the only message. */}
           {trades.length > 0 ? (
             <>
@@ -1029,7 +1031,7 @@ export function JournalScreen({ locale, messages }: { locale: Locale; messages: 
           </SectionPanel>
         </div>
 
-        <div className="space-y-4">
+        <div className="min-w-0 space-y-4">
           <TradeDossier
             trade={selectedTrade}
             locale={locale}
@@ -1098,7 +1100,8 @@ function TradeDossier({
     );
   }
 
-  const lesson = trade.journalEntry?.lessonsLearned ?? trade.lessonsLearned;
+  const storedLesson = trade.journalEntry?.lessonsLearned ?? trade.lessonsLearned;
+  const lesson = storedLesson ? neutralTag(storedLesson) : storedLesson;
   const confidence = typeof trade.confidenceScore === "number" ? trade.confidenceScore / 10 : 0;
   const relatedCount = related.ideas.length + related.reviews.length + related.news.length;
 

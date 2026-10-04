@@ -17,7 +17,7 @@ const copy = {
   en: {
     title: "Position size planner",
     description:
-      "Sizes a trade from your risk % and splits it into legs with a take-profit ladder, using your broker's lot rules. Same math as the MT5 risk panel.",
+      "Sizes a trade from your risk % and splits it into legs with a take-profit ladder, using your broker's lot rules. The volume is rounded down to the lot step and checked against the minimum and maximum lot.",
     symbol: "Symbol",
     custom: "Custom (enter your broker's spec)",
     direction: "Direction",
@@ -69,7 +69,7 @@ const copy = {
   fa: {
     title: "برنامه‌ریز حجم پوزیشن",
     description:
-      "حجم معامله را از درصد ریسک شما حساب می‌کند و آن را با پلکان حد سود به چند بخش تقسیم می‌کند، با قوانین حجم کارگزار شما. همان محاسبه پنل ریسک MT5.",
+      "حجم معامله را از درصد ریسک شما حساب می‌کند و آن را با پلکان حد سود به چند بخش تقسیم می‌کند، با قوانین حجم کارگزار شما. حجم به گام لات رو به پایین گرد می‌شود و با حداقل و حداکثر لات بررسی می‌شود.",
     symbol: "نماد",
     custom: "دستی (مشخصات کارگزار خودتان)",
     direction: "جهت",

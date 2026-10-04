@@ -1,4 +1,12 @@
 import { expect, test } from "@playwright/test";
+import { readFileSync } from "node:fs";
+
+// The phone bar's labels come from the message file (Home, Plan, Journal, Review, AI Coach), so a renamed label does not
+// need this test edited. tests/unit/playwright-config.test.tsx checks the shell renders these five.
+// The path is relative to this file, not to the folder Playwright was started from.
+const en = JSON.parse(readFileSync(new URL("../../src/messages/en.json", import.meta.url), "utf8")) as {
+  nav: { dashboard: string; plans: string; journal: string; reviews: string; ai: string };
+};
 
 test("demo user can login and see dashboard", async ({ page }) => {
   await page.goto("/en/login");
@@ -33,7 +41,13 @@ test("mobile shell keeps five primary actions and exposes secondary tools under 
 
   const primaryNav = page.locator('nav[aria-label="Primary navigation"]:visible');
   await expect(primaryNav.getByRole("link")).toHaveCount(5);
-  await expect(primaryNav.getByRole("link").allTextContents()).resolves.toEqual(["Home", "Plan", "Journal", "Review", "AI"]);
+  await expect(primaryNav.getByRole("link").allTextContents()).resolves.toEqual([
+    en.nav.dashboard,
+    en.nav.plans,
+    en.nav.journal,
+    en.nav.reviews,
+    en.nav.ai
+  ]);
 
   await page.locator('summary[aria-label="More"]').click();
   await expect(page.getByRole("link", { name: "Strategies" })).toBeVisible();

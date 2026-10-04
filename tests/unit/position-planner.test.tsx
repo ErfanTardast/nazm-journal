@@ -48,3 +48,28 @@ describe("PositionPlanner", () => {
     expect(screen.getByText("برنامه‌ریز حجم پوزیشن")).toBeInTheDocument();
   });
 });
+
+// A stranger has no "MT5 risk panel": the intro says what the planner does itself.
+describe("PositionPlanner intro", () => {
+  it("does not point at a tool the reader does not have (English)", () => {
+    const { container } = render(<PositionPlanner locale="en" />);
+    expect(container.textContent).not.toMatch(/risk panel/i);
+    expect(container.textContent).not.toMatch(/same math/i);
+    expect(screen.getByText(/rounded down to the lot step and checked against the minimum and maximum lot/)).toBeInTheDocument();
+  });
+
+  it("does not point at a tool the reader does not have (Persian)", () => {
+    const { container } = render(<PositionPlanner locale="fa" />);
+    expect(container.textContent).not.toContain("پنل ریسک");
+    expect(container.textContent).not.toContain("همان محاسبه");
+    expect(screen.getByText(/رو به پایین گرد می‌شود و با حداقل و حداکثر لات بررسی می‌شود/)).toBeInTheDocument();
+  });
+
+  // The sentence is only true if the maths does it: a 190-tick stop sizes 100 / 190 = 0.5263 lots, which is 0.52, never 0.53.
+  it("keeps the promise: the volume is rounded down to the lot step", () => {
+    render(<PositionPlanner locale="en" />);
+    fireEvent.change(screen.getByLabelText("Stop loss"), { target: { value: "1.09810" } });
+    expect(screen.getByText("0.52 lots")).toBeInTheDocument();
+    expect(screen.queryByText("0.53 lots")).toBeNull();
+  });
+});

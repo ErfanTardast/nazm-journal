@@ -1,18 +1,21 @@
 name: nazm
 
+# A local stack for trying Nazm and for development, not for a server: the database password and the session
+# secret below are public, and sign-up is open. Ports are published on this computer only (127.0.0.1); change
+# them with DB_PORT, REDIS_PORT or APP_PORT when 5432, 6379 or 3000 is already taken.
 services:
   db:
     image: postgres:16-alpine
     environment:
-      POSTGRES_USER: trademaster
-      POSTGRES_PASSWORD: trademaster
-      POSTGRES_DB: trademaster_ai
+      POSTGRES_USER: nazm
+      POSTGRES_PASSWORD: nazm
+      POSTGRES_DB: nazm
     ports:
-      - "5432:5432"
+      - "127.0.0.1:${DB_PORT:-5432}:5432"
     volumes:
       - db_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U trademaster -d trademaster_ai"]
+      test: ["CMD-SHELL", "pg_isready -U nazm -d nazm"]
       interval: 5s
       timeout: 5s
       retries: 20
@@ -20,7 +23,7 @@ services:
   redis:
     image: redis:7-alpine
     ports:
-      - "6379:6379"
+      - "127.0.0.1:${REDIS_PORT:-6379}:6379"
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
@@ -33,15 +36,16 @@ services:
       dockerfile: Dockerfile
     environment:
       NODE_ENV: production
-      APP_URL: http://localhost:3000
-      DATABASE_URL: postgresql://trademaster:trademaster@db:5432/trademaster_ai?schema=public
+      APP_URL: http://localhost:${APP_PORT:-3000}
+      DATABASE_URL: postgresql://nazm:nazm@db:5432/nazm?schema=public
       REDIS_URL: redis://redis:6379
+      # Public value, local use only: a server needs its own random secret of at least 32 characters.
       SESSION_SECRET: local-docker-change-this-session-secret-32-chars-min
       AI_PROVIDER: local
       # Local stack only: production closes sign-up unless an invite code is set or it is opened on purpose.
       REGISTRATION_OPEN: "true"
     ports:
-      - "3000:3000"
+      - "127.0.0.1:${APP_PORT:-3000}:3000"
     depends_on:
       db:
         condition: service_healthy

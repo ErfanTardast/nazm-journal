@@ -1,4 +1,5 @@
 import { AppError } from "@/lib/api/errors";
+import { BODY_LIMITS } from "@/lib/api/body-limits";
 import { ok, readJson, routeHandler } from "@/lib/api/response";
 import { ADMIN_ROLE, ensureAdminRole } from "@/lib/auth/admin-bootstrap";
 import { applySessionCookie, createSession, publicUser } from "@/lib/auth/session";
@@ -12,7 +13,7 @@ import { loginSchema } from "@/lib/validation/auth";
 export async function POST(request: Request) {
   return routeHandler(async () => {
     await enforceRateLimit(request, "auth:login", 10, 60);
-    const input = await readJson(request, loginSchema);
+    const input = await readJson(request, loginSchema, { maxBytes: BODY_LIMITS.auth });
     const user = await prisma.user.findUnique({
       where: { email: input.email },
       include: {

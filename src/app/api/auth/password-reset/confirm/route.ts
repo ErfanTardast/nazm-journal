@@ -1,4 +1,5 @@
 import { AppError } from "@/lib/api/errors";
+import { BODY_LIMITS } from "@/lib/api/body-limits";
 import { ok, readJson, routeHandler } from "@/lib/api/response";
 import { prisma } from "@/lib/db/prisma";
 import { auditLog } from "@/lib/security/audit";
@@ -10,7 +11,7 @@ import { passwordResetConfirmSchema } from "@/lib/validation/auth";
 export async function POST(request: Request) {
   return routeHandler(async () => {
     await enforceRateLimit(request, "auth:password-reset-confirm", 5, 60);
-    const input = await readJson(request, passwordResetConfirmSchema);
+    const input = await readJson(request, passwordResetConfirmSchema, { maxBytes: BODY_LIMITS.auth });
     const resetToken = await prisma.passwordResetToken.findUnique({
       where: { tokenHash: hashToken(input.token) }
     });

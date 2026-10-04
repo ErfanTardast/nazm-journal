@@ -3,7 +3,7 @@ import { ArrowRight, Brain, ClipboardCheck, FileCheck2, GraduationCap, LineChart
 import { PageHeader } from "@/components/layout/page-header";
 import { PremiumPanel } from "@/components/ui/premium-panel";
 import { DemoStoryPanel } from "./demo-story-panel";
-import { t, type getMessages } from "@/lib/i18n/messages";
+import type { getMessages } from "@/lib/i18n/messages";
 import type { Locale } from "@/lib/i18n/locales";
 import { brand } from "@/lib/brand";
 
@@ -11,7 +11,8 @@ type Messages = ReturnType<typeof getMessages>;
 
 const copy = {
   en: {
-    eyebrow: "Conference walkthrough",
+    eyebrow: "Demo mode",
+    title: "Demo walkthrough",
     headline: "Your trading second brain.",
     description: "A guided story for showing Nazm as a private trader growth workspace.",
     open: "Start in Command Center",
@@ -30,7 +31,8 @@ const copy = {
     safety: "No order execution. No copied accounts. No profit promises. No market certainty."
   },
   fa: {
-    eyebrow: "مسیر دموی کنفرانس",
+    eyebrow: "حالت نمایشی",
+    title: "راهنمای نمایشی",
     headline: "ذهن دوم معاملاتی شما.",
     description: "روایت راهنما برای نمایش اپ نظم به‌عنوان محیط خصوصی رشد معامله‌گر.",
     open: "شروع از مرکز فرمان",
@@ -52,14 +54,15 @@ const copy = {
 
 const icons = [Target, ClipboardCheck, Brain, TrendingUp, FileCheck2, LineChart, ShieldCheck, Newspaper, Brain, GraduationCap];
 
-export function DemoScreen({ locale, messages }: { locale: Locale; messages: Messages }) {
+// The page's own words live in `copy`; `messages` stays in the props only because the route and the tests pass it.
+export function DemoScreen({ locale }: { locale: Locale; messages?: Messages }) {
   const c = copy[locale];
 
   return (
     <div className="space-y-6">
       <PageHeader
         eyebrow={c.eyebrow}
-        title={t(messages, "pages.demo")}
+        title={c.title}
         description={c.description}
         action={
           <Link href={`/${locale}/dashboard`} className="inline-flex h-10 items-center rounded-md bg-primary px-4 text-sm font-semibold text-primary-foreground">

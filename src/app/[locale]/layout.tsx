@@ -4,7 +4,8 @@ import { preload } from "react-dom";
 import { AppShell } from "@/components/layout/app-shell";
 import { getCurrentUser } from "@/lib/auth/session";
 import { hasRole } from "@/lib/auth/rbac";
-import { brand } from "@/lib/brand";
+import { registrationMode } from "@/lib/auth/registration";
+import { brand, sourceUrl } from "@/lib/brand";
 import { getMessages } from "@/lib/i18n/messages";
 import { isLocale, type Locale } from "@/lib/i18n/locales";
 
@@ -48,6 +49,10 @@ export default async function LocaleLayout({
       messages={messages}
       canAccessAdmin={user ? hasRole(user, "admin") : false}
       user={user ? { name: user.name, email: user.email } : null}
+      // Read on the server for each request: the public start button follows how sign-up works here, and an operator of a
+      // modified copy points the Source code link (AGPL section 13) at that copy with NEXT_PUBLIC_SOURCE_URL.
+      registration={registrationMode()}
+      sourceUrl={sourceUrl()}
     >
       {children}
     </AppShell>

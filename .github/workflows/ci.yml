@@ -6,11 +6,14 @@ on:
   pull_request:
     branches: [main]
 
+permissions:
+  contents: read
+
 jobs:
   verify:
     runs-on: ubuntu-latest
     env:
-      DATABASE_URL: postgresql://trademaster:trademaster@localhost:5432/trademaster_ai?schema=public
+      DATABASE_URL: postgresql://nazm:nazm@localhost:5432/nazm?schema=public
       REDIS_URL: redis://localhost:6379
       SESSION_SECRET: ci-session-secret-change-in-real-deployments-32
       APP_URL: http://localhost:3000
@@ -27,6 +30,11 @@ jobs:
 
       - name: Install
         run: npm ci
+
+      # Fails only on a critical advisory in a package `npm ci --omit=dev` keeps (the Prisma CLI is one); lower ones are
+      # printed. It can fail on an advisory published after a change; that is the maintainers' to fix.
+      - name: Audit runtime dependencies
+        run: npm audit --omit=dev --audit-level=critical
 
       - name: Generate Prisma Client
         run: npx prisma generate

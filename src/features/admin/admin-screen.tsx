@@ -123,6 +123,15 @@ const copy = {
   }
 } as const;
 
+/**
+ * The card for a signed-in user who is not an admin. The admin page shows it without asking the server (it knows who is
+ * signed in), and the screen shows it when the server answers 403, so both read the same.
+ */
+export function AdminForbidden({ locale }: { locale: Locale }) {
+  const c = copy[locale];
+  return <ErrorState title={c.unavailable} description={c.unavailableForbidden} />;
+}
+
 /** `children` are shown first, right under the heading, once the overview has loaded for an admin. */
 export function AdminScreen({ locale, messages, children }: { locale: Locale; messages: Messages; children?: React.ReactNode }) {
   const c = copy[locale];
@@ -137,7 +146,8 @@ export function AdminScreen({ locale, messages, children }: { locale: Locale; me
     if (isAuthError(error)) return <AuthRequiredState locale={locale} />;
     // The server's own sentence is English: the reason is worded here, by what kind of failure it was.
     const status = (error as { status?: unknown }).status;
-    const reason = error instanceof TypeError ? c.unavailableNetwork : status === 403 ? c.unavailableForbidden : c.unavailableOther;
+    if (status === 403) return <AdminForbidden locale={locale} />;
+    const reason = error instanceof TypeError ? c.unavailableNetwork : c.unavailableOther;
     return <ErrorState title={c.unavailable} description={reason} />;
   }
   if (!overview) return <LoadingState label={c.loading} />;

@@ -16,7 +16,8 @@ const now = new Date("2026-10-01T12:00:00Z");
 const ENV = {
   BILLING_CARD_NUMBER: "0000000000000000",
   BILLING_CARD_HOLDER: "Sample Holder",
-  BILLING_USDT_TRC20_ADDRESS: "TQn9Y2khEsLJW1ChVWFMSMeRDow5KcbLSE"
+  // A made-up address in the right format (its checksum is invalid); never a real one.
+  BILLING_USDT_TRC20_ADDRESS: "TNazmTestWa11etNotRea1XXXXXXXXXXXX"
 };
 const TX = "b".repeat(64);
 const RRN = "123456789012";

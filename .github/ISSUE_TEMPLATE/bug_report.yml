@@ -1,0 +1,62 @@
+name: Bug report / گزارش باگ
+description: Something does not work as it should. / چیزی آن‌طور که باید کار نمی‌کند.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the report. You can write in English or Persian. / ممنون از گزارش. انگلیسی یا فارسی بنویسید.
+        Do not paste real account numbers, passwords or your own trade history. A security problem goes to SECURITY.md, not here.
+        شماره‌ی حساب، رمز عبور یا تاریخچه‌ی معاملات واقعی خود را اینجا نگذارید. مشکل امنیتی را طبق SECURITY.md گزارش کنید، نه اینجا.
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened? / چه اتفاقی افتاد؟
+      description: What you saw, and what you expected instead. / آنچه دیدید و آنچه انتظار داشتید.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce / مراحل تکرار
+      placeholder: |
+        1. Open /fa/journal
+        2. ...
+    validations:
+      required: true
+  - type: dropdown
+    id: language
+    attributes:
+      label: Page language / زبان صفحه
+      options:
+        - Persian (fa)
+        - English (en)
+        - Both / هر دو
+    validations:
+      required: true
+  - type: dropdown
+    id: setup
+    attributes:
+      label: How do you run Nazm? / نظم را چطور اجرا می‌کنید؟
+      options:
+        - docker compose (README)
+        - npm run dev (Develop locally)
+        - Self-hosted in production / میزبانی شخصی
+        - Other / دیگر
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version or commit / نسخه یا کامیت
+      placeholder: v0.1.0 or abc1234
+  - type: input
+    id: device
+    attributes:
+      label: Browser and device / مرورگر و دستگاه
+      placeholder: Chrome 140 on Android, 390 px wide
+  - type: textarea
+    id: extra
+    attributes:
+      label: Screenshots, logs / تصویر و لاگ
+      description: Remove personal data first. / اول داده‌های شخصی را حذف کنید.

@@ -110,6 +110,76 @@ describe.each(locales)("AppShell for a visitor ($locale)", ({ locale, messages }
   });
 });
 
+// The server tells the shell how sign-up works (invite code, open, closed); the layout passes it down. Without it the
+// shell speaks for the owner's invite-only server, as it always did.
+describe.each(locales)("the public shell's start button by sign-up mode ($locale)", ({ locale, messages }) => {
+  const visitor = (registration?: "invite" | "open" | "closed") => (
+    <AppShell locale={locale} messages={messages} canAccessAdmin={false} user={null} registration={registration}>
+      <p>page</p>
+    </AppShell>
+  );
+
+  it.each([undefined, "invite", "closed"] as const)("sends Start to the access section when sign-up is not open (%s)", (mode) => {
+    nav.path = `/${locale}`;
+    render(visitor(mode));
+    expect(screen.getByRole("link", { name: messages.nav.public.start }).getAttribute("href")).toBe(`/${locale}#access`);
+    expect(hrefs()).toContain(`/${locale}#access`);
+    expect(screen.getAllByRole("link", { name: messages.nav.public.access })).toHaveLength(1);
+    expect(hrefs()).not.toContain(`/${locale}/register`);
+  });
+
+  it("offers Sign up straight to the form when sign-up is open, and leaves out the Access menu entry", () => {
+    nav.path = `/${locale}`;
+    render(visitor("open"));
+    expect(screen.getByRole("link", { name: locale === "fa" ? "ثبت‌نام" : "Sign up" }).getAttribute("href")).toBe(`/${locale}/register`);
+    expect(screen.queryByRole("link", { name: messages.nav.public.start })).toBeNull();
+    expect(screen.queryByRole("link", { name: messages.nav.public.access })).toBeNull();
+    expect(hrefs()).not.toContain(`/${locale}#access`);
+    // Sign-in and the other section links are unchanged.
+    expect(screen.getByRole("link", { name: messages.auth.signIn }).getAttribute("href")).toBe(`/${locale}/login`);
+    expect(screen.getByRole("link", { name: messages.nav.public.how }).getAttribute("href")).toBe(`/${locale}#how`);
+  });
+
+  // Measured with a copy of this header (Tailwind CDN, the app's font stack, 2026-10-04): the English "Create account"
+  // squeezed the name from 44px to 33px ("Naz…") at 360px, so the header button says the short "Sign up" at every
+  // width. One label for every width keeps the accessible name equal to the visible text (WCAG 2.5.3, label in name).
+  it("labels the open-mode button Sign up at every width, so its accessible name is its visible text", () => {
+    nav.path = `/${locale}`;
+    render(visitor("open"));
+    const short = locale === "fa" ? "ثبت‌نام" : "Sign up";
+    const link = screen.getByRole("link", { name: short });
+    expect(link.textContent).toBe(short);
+    expect(link.querySelector("[aria-hidden], .sr-only")).toBeNull();
+    expect(link.className).not.toMatch(/(^|\s)(hidden|sr-only)(\s|$)/);
+  });
+
+  it.each(["invite", "closed"] as const)("keeps the plain Start label, without a phone variant, when sign-up is %s", (mode) => {
+    nav.path = `/${locale}`;
+    render(visitor(mode));
+    const link = screen.getByRole("link", { name: messages.nav.public.start });
+    expect(link.querySelector("span")).toBeNull();
+    expect(link.textContent).toBe(messages.nav.public.start);
+  });
+
+  it.each(["invite", "open", "closed"] as const)("still sends Start to the demo in demo mode (%s)", (mode) => {
+    demo.DEMO_MODE = true;
+    nav.path = `/${locale}`;
+    render(visitor(mode));
+    expect(screen.getByRole("link", { name: messages.nav.public.start }).getAttribute("href")).toBe(`/${locale}/demo`);
+    expect(hrefs()).not.toContain(`/${locale}/register`);
+  });
+
+  it("changes nothing for a signed-in user", () => {
+    nav.path = `/${locale}/journal`;
+    render(
+      <AppShell locale={locale} messages={messages} canAccessAdmin={false} user={member} registration="open">
+        <p>page</p>
+      </AppShell>
+    );
+    expect(hrefs()).not.toContain(`/${locale}/register`);
+  });
+});
+
 describe("AppShell for a signed-in user", () => {
   it("groups the menu by what the trader is doing", () => {
     nav.path = "/fa/journal";

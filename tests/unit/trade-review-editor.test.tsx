@@ -13,8 +13,8 @@ afterEach(() => {
 const trade = {
   id: "t1",
   ruleFollowed: "followed" as const,
-  lessonsLearned: "[خودکار · Claude] ریسک ۱٪ رعایت شد.",
-  journalEntry: { lessonsLearned: "[خودکار · Claude] ریسک ۱٪ رعایت شد.", mistakes: ["حد ضرر دورتر شد"] }
+  lessonsLearned: "[خودکار] ریسک ۱٪ رعایت شد.",
+  journalEntry: { lessonsLearned: "[خودکار] ریسک ۱٪ رعایت شد.", mistakes: ["حد ضرر دورتر شد"] }
 };
 
 const leg = (id: string, mistakes: string[]) => ({ ...trade, id, journalEntry: { ...trade.journalEntry, mistakes } });
@@ -95,6 +95,53 @@ describe("TradeReviewEditor", () => {
   });
 });
 
+// A failed save is worded by the editor in the page language: the server's English sentence never shows on the Persian page.
+describe("TradeReviewEditor failed saves", () => {
+  const failure = async (message: string, status: number, code: string) => {
+    const { ApiClientError } = await vi.importActual<typeof import("@/lib/api/client")>("@/lib/api/client");
+    return new ApiClientError(message, status, code);
+  };
+  const english = /[A-Za-z]{3,}/;
+
+  it("shows no English server sentence on the Persian page", async () => {
+    vi.mocked(apiFetch).mockRejectedValue(await failure("Trade not found", 404, "NOT_FOUND"));
+    const { container } = render(<TradeReviewEditor trade={trade} entryTrades={[trade]} locale="fa" onSaved={vi.fn()} />);
+    fireEvent.click(screen.getByRole("button", { name: "ویرایش مرور" }));
+    fireEvent.click(screen.getByRole("button", { name: "ذخیره مرور" }));
+
+    expect(await screen.findByText("مرور ذخیره نشد.")).toBeInTheDocument();
+    expect(container.textContent).not.toContain("Trade not found");
+    expect(container.textContent).not.toMatch(english);
+  });
+
+  it("says in Persian that the requests were too many, and how many legs saved first", async () => {
+    vi.mocked(apiFetch)
+      .mockImplementationOnce(async () => ({ trade: { id: "t1" } }) as never)
+      .mockRejectedValueOnce(await failure("Too many requests", 429, "RATE_LIMITED"));
+    const onSaved = vi.fn();
+    const { container } = render(<TradeReviewEditor trade={trade} entryTrades={entry} locale="fa" onSaved={onSaved} />);
+    fireEvent.click(screen.getByRole("button", { name: "ویرایش مرور" }));
+    fireEvent.click(screen.getByRole("button", { name: "ذخیره مرور" }));
+
+    expect(await screen.findByText(/۱ از ۳ پله ذخیره شد. تعداد تلاش‌ها زیاد بود/)).toBeInTheDocument();
+    expect(container.textContent).not.toContain("Too many requests");
+    expect(onSaved).toHaveBeenCalledWith([{ id: "t1" }]);
+  });
+
+  it("shows the server's own client-error sentence on the English page, and the editor's line for a server fault", async () => {
+    vi.mocked(apiFetch).mockRejectedValueOnce(await failure("Trade not found", 404, "NOT_FOUND"));
+    open();
+    fireEvent.click(screen.getByRole("button", { name: /save review/i }));
+    expect(await screen.findByText("Trade not found")).toBeInTheDocument();
+    cleanup();
+
+    vi.mocked(apiFetch).mockRejectedValueOnce(await failure("Internal Server Error", 500, "INTERNAL"));
+    open();
+    fireEvent.click(screen.getByRole("button", { name: /save review/i }));
+    expect(await screen.findByText("Could not save the review.")).toBeInTheDocument();
+  });
+});
+
 describe("TradeReviewEditor partial saves and Persian digits", () => {
   it("keeps the legs that saved when a later leg fails, and says how many saved", async () => {
     vi.mocked(apiFetch)
@@ -112,5 +159,69 @@ describe("TradeReviewEditor partial saves and Persian digits", () => {
     open(entry, vi.fn(), "fa");
 
     expect(screen.getByText(/برای هر ۳ پله/)).toBeInTheDocument();
+  });
+});
+
+// Reviews written by a script start with a tag, and the tag does not name a vendor. Rows stored with the old tag
+// (which did) are still recognised, and shown with the neutral one.
+describe("TradeReviewEditor automatic-review tag", () => {
+  const LEGACY = "[خودکار · Claude]";
+  const withLesson = (lesson: string | null, id = "t1") => ({
+    id,
+    ruleFollowed: "followed" as const,
+    lessonsLearned: lesson,
+    journalEntry: { lessonsLearned: lesson, mistakes: [] as string[] }
+  });
+  const openFor = (lesson: string | null, locale: "en" | "fa" = "en") => {
+    const one = withLesson(lesson);
+    const view = render(<TradeReviewEditor trade={one} entryTrades={[one]} locale={locale} onSaved={vi.fn()} />);
+    fireEvent.click(screen.getByRole("button", { name: /edit review|ویرایش مرور/i }));
+    return view;
+  };
+  const note = /written automatically|به‌صورت خودکار/;
+
+  it("notes a review that starts with the neutral tag", () => {
+    openFor("[خودکار] ریسک رعایت شد.");
+    expect(screen.getByText(note)).toBeInTheDocument();
+  });
+
+  it("still notes a review stored with the old tag, in both languages", () => {
+    openFor(`${LEGACY} ریسک رعایت شد.`);
+    expect(screen.getByText(note)).toBeInTheDocument();
+    cleanup();
+    openFor(`${LEGACY} ریسک رعایت شد.`, "fa");
+    expect(screen.getByText(note)).toBeInTheDocument();
+  });
+
+  it("shows an old-tag review with the neutral tag: the vendor name is not on screen", () => {
+    const { container } = openFor(`${LEGACY} ریسک رعایت شد.`);
+    expect((screen.getByLabelText(/lesson/i) as HTMLTextAreaElement).value).toBe("[خودکار] ریسک رعایت شد.");
+    expect(container.textContent).not.toContain("Claude");
+    expect((screen.getByLabelText(/lesson/i) as HTMLTextAreaElement).value).not.toContain("Claude");
+  });
+
+  it("saves the neutral tag for a review that was stored with the old one", async () => {
+    vi.mocked(apiFetch).mockImplementation(async () => ({ trade: { id: "t1" } }) as never);
+    openFor(`${LEGACY} ریسک رعایت شد.`);
+    fireEvent.click(screen.getByRole("button", { name: /save review/i }));
+    await waitFor(() => expect(apiFetch).toHaveBeenCalled());
+    expect(sentBodies()[0].body.lessonsLearned).toBe("[خودکار] ریسک رعایت شد.");
+  });
+
+  it("leaves a lesson the trader wrote alone", () => {
+    openFor("Moved my stop away.");
+    expect(screen.queryByText(note)).toBeNull();
+    expect((screen.getByLabelText(/lesson/i) as HTMLTextAreaElement).value).toBe("Moved my stop away.");
+  });
+
+  it("does not treat the tag in the middle of a lesson as a mark, and does not touch it", () => {
+    openFor(`I noted ${LEGACY} once`);
+    expect(screen.queryByText(note)).toBeNull();
+    expect((screen.getByLabelText(/lesson/i) as HTMLTextAreaElement).value).toBe(`I noted ${LEGACY} once`);
+  });
+
+  it("has no note for a trade with no lesson", () => {
+    openFor(null);
+    expect(screen.queryByText(note)).toBeNull();
   });
 });

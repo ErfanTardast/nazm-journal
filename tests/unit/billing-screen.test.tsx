@@ -5,7 +5,8 @@ vi.mock("@/lib/api/client", () => ({ apiFetch: vi.fn(), isAuthError: () => false
 import { apiFetch } from "@/lib/api/client";
 import { BillingScreen } from "@/features/billing/billing-screen";
 
-const WALLET = "TQn9Y2khEsLJW1ChVWFMSMeRDow5KcbLSE";
+// A made-up address in the right format (its checksum is invalid, so no wallet accepts it); never a real one.
+const WALLET = "TNazmTestWa11etNotRea1XXXXXXXXXXXX";
 const overview = {
   tier: "free",
   tierExpiresAt: null,

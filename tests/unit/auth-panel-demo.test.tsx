@@ -32,6 +32,28 @@ describe("AuthPanel demo credentials", () => {
     expect(link.getAttribute("href")).toBe("/fa/terms");
   });
 
+  it("prefills the demo password on the sign-in form too, not only the e-mail", () => {
+    demo.DEMO_MODE = true;
+    render(<AuthPanel locale="en" messages={en} mode="login" />);
+    expect(screen.getByDisplayValue("DemoPassword123!")).toBeInTheDocument();
+  });
+
+  it("starts the register form empty in demo mode: no demo name, e-mail or password", () => {
+    demo.DEMO_MODE = true;
+    render(<AuthPanel locale="en" messages={en} mode="register" />);
+    expect(screen.queryByDisplayValue("demo@nazm.example")).toBeNull();
+    expect(screen.queryByDisplayValue("Demo Trader")).toBeNull();
+    expect(screen.queryByDisplayValue("DemoPassword123!")).toBeNull();
+    for (const box of screen.getAllByRole("textbox")) expect((box as HTMLInputElement).value).toBe("");
+    expect(document.querySelector<HTMLInputElement>('input[type="password"]')?.value).toBe("");
+  });
+
+  it("does not show the demo-login hint on the register form", () => {
+    demo.DEMO_MODE = true;
+    render(<AuthPanel locale="fa" messages={getMessages("fa")} mode="register" />);
+    expect(screen.queryByText(getMessages("fa").auth.demoHint)).toBeNull();
+  });
+
   it("starts empty and hides the hint when demo mode is off", () => {
     demo.DEMO_MODE = false;
     render(<AuthPanel locale="en" messages={en} mode="login" />);

@@ -1,4 +1,5 @@
 import { AppError } from "@/lib/api/errors";
+import { BODY_LIMITS } from "@/lib/api/body-limits";
 import { ok, readJson, routeHandler } from "@/lib/api/response";
 import { isAdminEmail } from "@/lib/auth/admin-bootstrap";
 import { createSession, applySessionCookie, publicUser } from "@/lib/auth/session";
@@ -22,7 +23,7 @@ function requireInvite(given: string | undefined) {
     return;
   }
   if (!given || hashToken(given.trim()) !== hashToken(expected)) {
-    throw new AppError("INVITE_REQUIRED", "A valid invite code is needed to sign up during the trial", 403);
+    throw new AppError("INVITE_REQUIRED", "A valid invite code is needed to sign up on this server", 403);
   }
 }
 
@@ -32,7 +33,7 @@ const emailAlreadyExists = () => new AppError("EMAIL_ALREADY_EXISTS", "An accoun
 export async function POST(request: Request) {
   return routeHandler(async () => {
     await enforceRateLimit(request, "auth:register", 5, 60);
-    const input = await readJson(request, registerSchema);
+    const input = await readJson(request, registerSchema, { maxBytes: BODY_LIMITS.auth });
     requireInvite(input.inviteCode);
 
     // Registering never grants a role. An address listed in ADMIN_EMAILS is reserved for the owner: until it has an
