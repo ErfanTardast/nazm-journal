@@ -166,6 +166,8 @@ Stateless planning maths. They store nothing and place nothing.
 | Method | Path | Access | What it does |
 | --- | --- | --- | --- |
 | GET | `/api/dashboard/overview` | session | What the home screen shows: readiness, metrics, open plans, review focus and a short summary |
+| GET | `/api/performance` | session | The performance report for one period (`?period=7d`, `30d`, `90d` or `all`, all by default; another value answers 422): the headline figures, the equity curve, the breakdowns and the behaviour figures, as numbers and label keys (the app writes the words). Days follow the time zone set in Settings |
+| GET | `/api/performance/trades` | session | The ids of the trades behind one row of the performance breakdowns (`?period=7d`, `30d`, `90d` or `all`, `&dimension=` one of strategy, symbol, market, side, session, weekday, setup, mistake or emotion, `&row=` the row's id from the report; all three are needed, anything else answers 422). It reads the same window, time zone and own-or-sample rule as the report, so the count matches the row. The journal uses it to show those trades |
 | GET | `/api/discipline` | session | The discipline score, the prop-firm guard check, repeated-mistake patterns and the week's rule adherence |
 | GET | `/api/discipline/streak` | session | The streak of days that followed the rules |
 | GET | `/api/mentor-report` | session | A report meant for sharing with a mentor; `?hidePnl=true` leaves out money figures. While payments are on it needs the Elite plan |

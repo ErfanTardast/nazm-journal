@@ -1,24 +1,36 @@
 import { prisma } from "@/lib/db/prisma";
 import { calculateDisciplineScore } from "@/lib/calculations/discipline";
 import { checkPropGuard } from "@/lib/calculations/prop-guard";
+import { dayKey, periodRange, startOfDay } from "@/lib/calculations/performance/time";
+import { todayRisk, traderZone } from "@/lib/calculations/today-risk";
+import { toNumber } from "./serializers";
 import { getMistakeMemory } from "./mistake-memory";
 import { getReviewFocus } from "./reviews";
 import type { Locale } from "@/lib/i18n/locales";
 
-/** `locale` is the language of the alert and check sentences; English when a caller gives none. */
-export async function getDisciplineOverview(userId: string, locale: Locale = "en") {
-  const weekStart = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-  const dayStart = new Date();
-  dayStart.setHours(0, 0, 0, 0);
+/**
+ * `locale` is the language of the alert and check sentences; English when a caller gives none. The week is today and
+ * the six days before, and today starts at midnight, both in the trader's time zone (Settings; `timeZone` overrides it).
+ */
+export async function getDisciplineOverview(userId: string, locale: Locale = "en", options: { timeZone?: string; now?: Date } = {}) {
+  const now = options.now ?? new Date();
+  // The zone is saved on the user, and so is read with the limits; the day's boundaries follow from it.
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { riskPerTradePct: true, maxDailyLossPct: true, startingBalance: true, timezone: true }
+  });
+  const timeZone = traderZone(options.timeZone ?? user?.timezone);
+  const today = dayKey(now, timeZone);
+  const dayStart = startOfDay(today, timeZone);
+  const weekStart = periodRange("7d", now, timeZone).from ?? dayStart;
 
   const [
     plansThisWeek,
     tradesThisWeek,
-    todayTrades,
+    dayTrades,
     closedTotal,
     closedWithJournal,
     recentJournal,
-    user,
     reviewFocus,
     mistakePatterns,
     recentClosed
@@ -27,14 +39,16 @@ export async function getDisciplineOverview(userId: string, locale: Locale = "en
       where: { userId, createdAt: { gte: weekStart } },
       select: { riskAmount: true, riskPercent: true, invalidationRule: true, checklist: true }
     }),
-    // Trades opened this week, not journal rows created this week (an import creates old trades' rows today).
-    prisma.tradeJournalEntry.findMany({
-      where: { userId, trade: { openedAt: { gte: weekStart } } },
+    // The verdicts of the trades opened this week, read from Trade.ruleFollowed (the one source every screen shares),
+    // not journal rows created this week (an import creates old trades' rows today).
+    prisma.trade.findMany({
+      where: { userId, openedAt: { gte: weekStart } },
       select: { ruleFollowed: true }
     }),
+    // Opened today (for the count) or closed today (for the loss): a trade opened yesterday can close this morning.
     prisma.trade.findMany({
-      where: { userId, openedAt: { gte: dayStart } },
-      select: { riskPercent: true, realizedPnl: true, strategyId: true }
+      where: { userId, OR: [{ openedAt: { gte: dayStart } }, { closedAt: { gte: dayStart } }] },
+      select: { status: true, openedAt: true, closedAt: true, riskPercent: true, riskAmount: true, realizedPnl: true, rMultiple: true, strategyId: true }
     }),
     prisma.trade.count({ where: { userId, status: "closed" } }),
     // Journaled means the lesson is written (as the dashboard's journal follow-up counts it), not that an
@@ -47,10 +61,6 @@ export async function getDisciplineOverview(userId: string, locale: Locale = "en
       select: { mistakes: true },
       orderBy: { trade: { openedAt: "desc" } },
       take: 20
-    }),
-    prisma.user.findUnique({
-      where: { id: userId },
-      select: { riskPerTradePct: true, maxDailyLossPct: true }
     }),
     getReviewFocus(userId),
     getMistakeMemory(userId, 7),
@@ -106,10 +116,21 @@ export async function getDisciplineOverview(userId: string, locale: Locale = "en
   // Prop guard inputs
   const maxDailyLossPct = Number(user?.maxDailyLossPct ?? 0);
   const riskPerTradePct = Number(user?.riskPerTradePct ?? 0);
-  const todayLossTotal = todayTrades
-    .filter((t) => Number(t.realizedPnl ?? 0) < 0)
-    .reduce((sum, t) => sum + Number(t.riskPercent ?? riskPerTradePct ?? 0), 0);
-  const todayUnplanned = todayTrades.filter((t) => !t.strategyId).length;
+  // The same figure the dashboard's meter shows: the net result of the trades closed today, over the balance or in R.
+  const meter = todayRisk(
+    dayTrades.map((t) => ({
+      status: t.status,
+      openedAt: t.openedAt.toISOString(),
+      closedAt: t.closedAt?.toISOString() ?? null,
+      realizedPnl: toNumber(t.realizedPnl),
+      rMultiple: toNumber(t.rMultiple),
+      riskPercent: toNumber(t.riskPercent),
+      riskAmount: toNumber(t.riskAmount)
+    })),
+    { timeZone, now, maxDailyLossPct, riskPerTradePct, startingBalance: toNumber(user?.startingBalance) }
+  );
+  const openedToday = dayTrades.filter((t) => dayKey(t.openedAt, timeZone) === today);
+  const todayUnplanned = openedToday.filter((t) => !t.strategyId).length;
   // The guard's consecutive-loss check needs results (true = not a loss), oldest first.
   const recentResults = recentClosed
     .filter((t) => t.realizedPnl !== null)
@@ -120,8 +141,8 @@ export async function getDisciplineOverview(userId: string, locale: Locale = "en
     {
       maxDailyLossPct,
       riskPerTradePct,
-      todayLossPct: todayLossTotal,
-      todayTradeCount: todayTrades.length,
+      todayLossPct: meter.lossPct,
+      todayTradeCount: openedToday.length,
       maxDailyTrades: null,
       recentResults: recentResults.slice(-5),
       todayUnplannedCount: todayUnplanned

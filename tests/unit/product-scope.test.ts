@@ -1,10 +1,23 @@
 import { describe, expect, it } from "vitest";
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { marketSchema } from "@/lib/validation/trading";
 import { coreScopeForbiddenPatterns, productScopeForbiddenPatterns } from "@/lib/ai/guard";
 
 const root = process.cwd();
+
+/** Folders read whole: every .ts and .tsx file in them is guarded, so a new file needs no edit here. */
+const scannedFolders = ["src/features/performance", "src/features/dashboard"];
+
+function sourceFilesUnder(folder: string): string[] {
+  return readdirSync(join(root, folder), { withFileTypes: true }).flatMap((entry) => {
+    const path = `${folder}/${entry.name}`;
+    if (entry.isDirectory()) return sourceFilesUnder(path);
+    return /\.tsx?$/.test(entry.name) ? [path] : [];
+  });
+}
+const scannedFiles = scannedFolders.flatMap(sourceFilesUnder);
+
 const activeSurfaceFiles = [
   "src/features/landing/landing-screen.tsx",
   "src/features/landing/landing-copy.ts",
@@ -15,7 +28,6 @@ const activeSurfaceFiles = [
   "src/features/ai/ai-assistant-screen.tsx",
   "src/features/alerts/alerts-screen.tsx",
   "src/features/backtesting/backtest-screen.tsx",
-  "src/features/dashboard/dashboard-screen.tsx",
   "src/features/growth/growth-screen.tsx",
   "src/features/ideas/ideas-screen.tsx",
   "src/features/import/csv-import-screen.tsx",
@@ -23,7 +35,6 @@ const activeSurfaceFiles = [
   "src/features/journal/trade-review-editor.tsx",
   "src/features/learning/learning-screen.tsx",
   "src/features/news/news-screen.tsx",
-  "src/features/performance/performance-screen.tsx",
   "src/features/portfolio/portfolio-screen.tsx",
   "src/features/reviews/reviews-screen.tsx",
   "src/features/risk/risk-screen.tsx",
@@ -42,13 +53,20 @@ const activeSurfaceFiles = [
   "src/lib/services/reviews.ts",
   "src/lib/services/review-copy.ts",
   "src/messages/en.json",
-  "src/messages/fa.json"
+  "src/messages/fa.json",
+  ...scannedFiles
 ];
 
 describe("product scope guardrails", () => {
   it("only accepts MVP markets", () => {
     expect(marketSchema.options).toEqual(["crypto", "forex", "stocks"]);
     expect(() => marketSchema.parse("futures")).toThrow();
+  });
+
+  it("reads every file of the folders it scans whole", () => {
+    expect(scannedFiles).toEqual(expect.arrayContaining(["src/features/performance/performance-screen.tsx", "src/features/dashboard/dashboard-screen.tsx"]));
+    expect(scannedFiles.every((file) => /\.tsx?$/.test(file))).toBe(true);
+    expect(new Set(activeSurfaceFiles).size).toBe(activeSurfaceFiles.length);
   });
 
   it("keeps active UI surfaces inside the second-brain scope", () => {

@@ -1,11 +1,10 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
   AlertTriangle,
   ArrowRight,
-  Bot,
   CheckCircle2,
   ClipboardCheck,
   FileCheck2,
@@ -24,13 +23,19 @@ import { Badge } from "@/components/ui/badge";
 import { PremiumPanel } from "@/components/ui/premium-panel";
 import { ProgressRing } from "@/components/ui/progress-ring";
 import { SectionPanel } from "@/components/ui/section-panel";
-import { StatCard } from "@/components/ui/stat-card";
 import { AuthRequiredState, ErrorState, LoadingState } from "@/components/ui/state";
 import { DisciplineStreakPanel } from "@/features/dashboard/discipline-streak-panel";
+import { FocusCard } from "@/features/dashboard/focus-card";
+import type { DashboardOverview, ReadinessAction } from "@/features/dashboard/overview-types";
+import { PerformanceSection } from "@/features/dashboard/performance-tiles";
+import { QuickActions } from "@/features/dashboard/quick-actions";
+import { RecentTrades } from "@/features/dashboard/recent-trades";
+import { TodaySection } from "@/features/dashboard/today-tiles";
 import { SetupChecklist } from "@/features/onboarding/setup-checklist";
 import { SampleDataOffer } from "@/features/sample/sample-data-offer";
 import { apiFetch, isAuthError } from "@/lib/api/client";
 import { apiErrorText } from "@/lib/api/error-text";
+import { formatCount, formatNumber, formatPercent } from "@/lib/i18n/format";
 import { t, type getMessages } from "@/lib/i18n/messages";
 import type { Locale } from "@/lib/i18n/locales";
 import { cn } from "@/lib/utils";
@@ -51,68 +56,6 @@ type DisciplineOverview = {
     maxDailyLossPct: number;
   };
   mistakePatterns: { mistake: string; frequency: number; streak: number; avgRImpact: number | null }[];
-};
-
-type ReadinessAction = "review" | "risk" | "plan" | "journal" | "ready";
-type ReadinessCheck = {
-  key: "plan" | "risk" | "review" | "rules" | "journal";
-  passed: boolean;
-  count: number;
-};
-
-type DashboardOverview = {
-  metrics: {
-    /** Closed trades only. */
-    totalTrades: number;
-    winRate: number;
-  };
-  /** Trades still open. */
-  openTrades: number;
-  plannedTrades: {
-    id: string;
-    symbol: string;
-    market: string;
-    bias: string;
-    status: string;
-    invalidationRule: string | null;
-    riskPercent: number | null;
-  }[];
-  repeatedMistakes: string[];
-  ruleViolations: number;
-  journalFollowUps: number;
-  completePlanCount: number;
-  riskDefaults: {
-    riskPerTradePct: number;
-    maxDailyLossPct: number;
-    maxWeeklyLossPct: number;
-    valid: boolean;
-  };
-  readiness: {
-    status: "ready" | "caution" | "not_ready";
-    score: number;
-    primaryAction: ReadinessAction;
-    checks: ReadinessCheck[];
-  };
-  reviewFocus: {
-    review: {
-      id: string;
-      title: string;
-      status: "open" | "completed" | "skipped";
-      periodEnd: string;
-    } | null;
-    overdueCount: number;
-    suggestedType: string;
-  };
-  activeSession: {
-    id: string;
-    status: string;
-    market: string;
-    sessionLabel: string;
-    emotionalState: string | null;
-    mistakeToAvoid: string | null;
-    startedAt: string;
-    maxDailyLoss: number | null;
-  } | null;
 };
 
 const copy = {
@@ -151,36 +94,7 @@ const copy = {
       journal: "Finish journal follow-up",
       ready: "Open today's plan"
     },
-    metrics: {
-      completePlans: "Complete plans",
-      overdueReviews: "Overdue reviews",
-      journalFollowUps: "Journal follow-ups",
-      ruleBreaks: "Rule breaks, 7 days"
-    },
     markets: { crypto: "Crypto", forex: "Forex", stocks: "Stocks" } as Record<string, string>,
-    planStatuses: { planned: "Planned", active: "Active", closed: "Closed", canceled: "Canceled" } as Record<string, string>,
-    reviewStatuses: { open: "Open", completed: "Completed", skipped: "Skipped" } as Record<string, string>,
-    planTitle: "Today's written plan",
-    planDescription: "The plan is the operating anchor. Do not replace it with market certainty.",
-    noPlan: "No active plan is ready. Define scenario, risk, invalidation, and checklist first.",
-    noPlanNewAccount: "No trades logged and no active plan yet. Write a plan, or import the trades you already took.",
-    firstSteps: { plan: "Write a plan", importTrades: "Import trades" },
-    risk: "Risk",
-    invalidation: "Invalidation",
-    reviewTitle: "Current review",
-    reviewDescription: "Close the loop before starting another one.",
-    noReview: "No open review. Generate a daily review to preserve the operating rhythm.",
-    mistakesTitle: "Repeated mistake evidence",
-    mistakesDescription: "Use recurring tags as checklist inputs, not as labels about ability.",
-    noMistakes: "No repeated mistake tags are present in recent journal records.",
-    loopTitle: "Plan → Journal → Review → Improve",
-    loopDescription: "The primary workspace stays intentionally small.",
-    loop: {
-      plan: "Write the scenario and invalidation",
-      journal: "Capture the result and behavior",
-      review: "Find repeated process evidence",
-      ai: "Explain lessons without signals"
-    },
     session: {
       title: "Trading Session",
       noSession: "No active session",
@@ -245,36 +159,7 @@ const copy = {
       journal: "تکمیل پیگیری ژورنال",
       ready: "باز کردن پلن امروز"
     },
-    metrics: {
-      completePlans: "پلن کامل",
-      overdueReviews: "مرور عقب‌افتاده",
-      journalFollowUps: "پیگیری ژورنال",
-      ruleBreaks: "نقض قانون در ۷ روز"
-    },
     markets: { crypto: "کریپتو", forex: "فارکس", stocks: "سهام" } as Record<string, string>,
-    planStatuses: { planned: "برنامه‌ریزی‌شده", active: "فعال", closed: "بسته‌شده", canceled: "لغوشده" } as Record<string, string>,
-    reviewStatuses: { open: "باز", completed: "تکمیل‌شده", skipped: "ردشده" } as Record<string, string>,
-    planTitle: "پلن مکتوب امروز",
-    planDescription: "پلن تکیه‌گاه کار است و نباید با قطعیت درباره بازار جایگزین شود.",
-    noPlan: "پلن فعالی آماده نیست. ابتدا سناریو، ریسک، ابطال و چک‌لیست را مشخص کنید.",
-    noPlanNewAccount: "هنوز معامله‌ای ثبت نشده و پلن فعالی ندارید. یک پلن بنویسید یا معامله‌هایی را که قبلاً انجام داده‌اید وارد کنید.",
-    firstSteps: { plan: "نوشتن پلن", importTrades: "ورود معاملات" },
-    risk: "ریسک",
-    invalidation: "ابطال",
-    reviewTitle: "مرور جاری",
-    reviewDescription: "پیش از شروع چرخه جدید، چرخه قبلی را ببندید.",
-    noReview: "مرور بازی وجود ندارد. برای حفظ ریتم کاری یک مرور روزانه بسازید.",
-    mistakesTitle: "شواهد خطاهای تکراری",
-    mistakesDescription: "از برچسب‌های تکراری برای بهبود چک‌لیست استفاده کنید، نه قضاوت درباره توانایی.",
-    noMistakes: "در رکوردهای اخیر ژورنال، خطای تکراری ثبت نشده است.",
-    loopTitle: "پلن ← ژورنال ← مرور ← بهبود",
-    loopDescription: "محیط اصلی عمداً کوچک و متمرکز نگه داشته شده است.",
-    loop: {
-      plan: "سناریو و قانون ابطال را بنویسید",
-      journal: "نتیجه و رفتار را سریع ثبت کنید",
-      review: "شواهد فرایندی تکراری را پیدا کنید",
-      ai: "درس‌ها را بدون سیگنال توضیح دهید"
-    },
     session: {
       title: "جلسه معاملاتی",
       noSession: "جلسه فعالی نیست",
@@ -331,9 +216,8 @@ function propGuardMessage(alert: { key: string; message: string }, locale: Local
 }
 
 function formatElapsed(minutes: number, c: { elapsedMinutes: string; elapsedHours: string }, locale: Locale) {
-  const number = new Intl.NumberFormat(locale === "fa" ? "fa-IR" : "en-US");
-  if (minutes < 60) return c.elapsedMinutes.replace("{m}", number.format(minutes));
-  return c.elapsedHours.replace("{h}", number.format(Math.floor(minutes / 60))).replace("{m}", number.format(minutes % 60));
+  if (minutes < 60) return c.elapsedMinutes.replace("{m}", formatCount(minutes, locale));
+  return c.elapsedHours.replace("{h}", formatCount(Math.floor(minutes / 60), locale)).replace("{m}", formatCount(minutes % 60, locale));
 }
 
 const actionConfig: Record<ReadinessAction, { href: string; icon: LucideIcon }> = {
@@ -344,6 +228,12 @@ const actionConfig: Record<ReadinessAction, { href: string; icon: LucideIcon }> 
   ready: { href: "plans", icon: Target }
 };
 
+/**
+ * The home screen, in the order a trader asks: what should I do today (readiness, then today's loss meter, plan and
+ * reviews), how am I doing (the last 30 days), what is my biggest problem this week (the focus card), then the latest
+ * trades and quick actions. The session, discipline panels and the five readiness checks sit lower down. Every block
+ * comes in the one overview request; a block whose data is missing (an older payload) is left out.
+ */
 export function DashboardScreen({ locale, messages }: { locale: Locale; messages: Messages }) {
   const c = copy[locale];
   const [data, setData] = useState<DashboardOverview | null>(null);
@@ -432,11 +322,6 @@ export function DashboardScreen({ locale, messages }: { locale: Locale; messages
     setStoppingSess(false);
   }
 
-  const primaryPlan = useMemo(() => data?.plannedTrades[0] ?? null, [data?.plannedTrades]);
-  // No trades and no plans yet: the "no plan" slot below offers the first steps, so there is no second getting-started block.
-  // `totalTrades` counts closed trades and `plannedTrades` holds planned/active plans only, so open trades are checked too.
-  const isNewAccount = data ? data.metrics.totalTrades === 0 && data.openTrades === 0 && data.plannedTrades.length === 0 : false;
-
   if (error) {
     if (isAuthError(error)) return <AuthRequiredState locale={locale} />;
     return <ErrorState title={c.unavailable} description={apiErrorText(error, locale, c.loadFailed)} />;
@@ -446,9 +331,11 @@ export function DashboardScreen({ locale, messages }: { locale: Locale; messages
   const action = actionConfig[data.readiness.primaryAction];
   const ActionIcon = action.icon;
   const statusTone = data.readiness.status === "ready" ? "success" : data.readiness.status === "caution" ? "warning" : "danger";
+  const timeZone = data.performance?.context.timeZone ?? "UTC";
+  const sample = data.performance?.context.source === "sample";
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       <PageHeader eyebrow={c.eyebrow} title={c.title} description={c.description} />
 
       {/* Each shows itself only when it has something to say: setup steps still open, sample data an empty journal can load. */}
@@ -457,7 +344,7 @@ export function DashboardScreen({ locale, messages }: { locale: Locale; messages
 
       <PremiumPanel glow>
         <div className="grid gap-6 p-5 sm:p-6 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
-          <div>
+          <div className="min-w-0">
             <Badge tone={statusTone}>{c.statuses[data.readiness.status]}</Badge>
             <h2 className="mt-4 text-2xl font-semibold text-foreground sm:text-3xl">{c.statusDescriptions[data.readiness.status]}</h2>
             <p className="mt-3 text-sm font-semibold text-muted-foreground">{c.primaryAction}</p>
@@ -471,18 +358,22 @@ export function DashboardScreen({ locale, messages }: { locale: Locale; messages
             </Link>
           </div>
           <div className="flex items-center gap-4 lg:flex-col">
-            <ProgressRing value={data.readiness.score / 100} label={c.score} className="size-28" />
+            <ProgressRing value={data.readiness.score / 100} label={c.score} className="size-28" locale={locale} />
             <span className="text-xs font-semibold text-muted-foreground">{c.score}</span>
           </div>
         </div>
       </PremiumPanel>
 
-      <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
-        <StatCard label={c.metrics.completePlans} value={String(data.completePlanCount)} tone={data.completePlanCount > 0 ? "success" : "warning"} compact />
-        <StatCard label={c.metrics.overdueReviews} value={String(data.reviewFocus.overdueCount)} tone={data.reviewFocus.overdueCount > 0 ? "danger" : "success"} compact />
-        <StatCard label={c.metrics.journalFollowUps} value={String(data.journalFollowUps)} tone={data.journalFollowUps > 0 ? "warning" : "success"} compact />
-        <StatCard label={c.metrics.ruleBreaks} value={String(data.ruleViolations)} tone={data.ruleViolations > 0 ? "danger" : "success"} compact />
-      </div>
+      {/* The loss meter, the plan and the reviews waiting. The review tile reads reviewTasks, or reviewFocus in an older payload. */}
+      <TodaySection data={data} locale={locale} />
+
+      {data.performance ? <PerformanceSection snapshot={data.performance} locale={locale} /> : null}
+
+      {data.focus !== undefined ? <FocusCard focus={data.focus} locale={locale} coachName={t(messages, "nav.ai")} sample={sample} /> : null}
+
+      {data.recentTrades ? <RecentTrades trades={data.recentTrades} timeZone={timeZone} sample={sample} locale={locale} /> : null}
+
+      <QuickActions locale={locale} />
 
       <SessionPanel
         locale={locale}
@@ -513,7 +404,7 @@ export function DashboardScreen({ locale, messages }: { locale: Locale; messages
             <div
               key={check.key}
               className={cn(
-                "flex min-h-20 items-start gap-3 rounded-md border p-3",
+                "flex min-h-20 min-w-0 items-start gap-3 rounded-md border p-3",
                 check.passed ? "border-success/25 bg-success/10" : "border-warning/30 bg-warning/10"
               )}
             >
@@ -524,82 +415,12 @@ export function DashboardScreen({ locale, messages }: { locale: Locale; messages
               )}
               <div>
                 <p className="text-sm font-semibold text-foreground">{c.checks[check.key]}</p>
-                {!check.passed && check.count > 0 ? <p className="mt-1 text-xs text-muted-foreground">{check.count}</p> : null}
+                {!check.passed && check.count > 0 ? <p className="mt-1 text-xs text-muted-foreground">{formatCount(check.count, locale)}</p> : null}
               </div>
             </div>
           ))}
         </div>
       </SectionPanel>
-
-      <div className="grid gap-4 lg:grid-cols-2">
-        <SectionPanel title={c.planTitle} description={c.planDescription}>
-          {primaryPlan ? (
-            <div className="rounded-md border border-border bg-muted/20 p-4">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <p className="text-lg font-semibold text-foreground">{primaryPlan.symbol}</p>
-                  <p className="mt-1 text-sm text-muted-foreground">{c.markets[primaryPlan.market] ?? primaryPlan.market} · {primaryPlan.bias}</p>
-                </div>
-                <Badge tone="warning">{c.planStatuses[primaryPlan.status] ?? primaryPlan.status}</Badge>
-              </div>
-              <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                <Evidence label={c.risk} value={primaryPlan.riskPercent ? `${primaryPlan.riskPercent}%` : "-"} />
-                <Evidence label={c.invalidation} value={primaryPlan.invalidationRule ?? "-"} />
-              </div>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              <p className="text-sm leading-6 text-muted-foreground">{isNewAccount ? c.noPlanNewAccount : c.noPlan}</p>
-              <div className="flex flex-wrap gap-3">
-                <FirstStepLink href={`/${locale}/plans`} primary>
-                  {c.firstSteps.plan}
-                </FirstStepLink>
-                {isNewAccount ? <FirstStepLink href={`/${locale}/import`}>{c.firstSteps.importTrades}</FirstStepLink> : null}
-              </div>
-            </div>
-          )}
-        </SectionPanel>
-
-        <SectionPanel title={c.reviewTitle} description={c.reviewDescription}>
-          {data.reviewFocus.review ? (
-            <div className="rounded-md border border-border bg-muted/20 p-4">
-              <p className="text-base font-semibold text-foreground">{data.reviewFocus.review.title}</p>
-              <div className="mt-3 flex flex-wrap items-center gap-2">
-                <Badge>{c.reviewStatuses[data.reviewFocus.review.status] ?? data.reviewFocus.review.status}</Badge>
-                {data.reviewFocus.overdueCount > 0 ? <Badge tone="danger">{data.reviewFocus.overdueCount}</Badge> : null}
-              </div>
-            </div>
-          ) : (
-            <p className="text-sm leading-6 text-muted-foreground">{c.noReview}</p>
-          )}
-        </SectionPanel>
-      </div>
-
-      <div className="grid gap-4 lg:grid-cols-[0.8fr_1.2fr]">
-        <SectionPanel title={c.mistakesTitle} description={c.mistakesDescription}>
-          <div className="space-y-2">
-            {data.repeatedMistakes.length ? (
-              data.repeatedMistakes.map((mistake) => (
-                <div key={mistake} className="flex items-center gap-2 rounded-md border border-destructive/25 bg-destructive/10 p-3 text-sm text-foreground">
-                  <ShieldAlert className="size-4 shrink-0 text-destructive" aria-hidden="true" />
-                  {mistake}
-                </div>
-              ))
-            ) : (
-              <p className="text-sm leading-6 text-muted-foreground">{c.noMistakes}</p>
-            )}
-          </div>
-        </SectionPanel>
-
-        <SectionPanel title={c.loopTitle} description={c.loopDescription}>
-          <div className="grid gap-3 sm:grid-cols-2">
-            <LoopAction href={`/${locale}/plans`} icon={ClipboardCheck} title={t(messages, "nav.plans")} description={c.loop.plan} />
-            <LoopAction href={`/${locale}/journal`} icon={ListChecks} title={t(messages, "nav.journal")} description={c.loop.journal} />
-            <LoopAction href={`/${locale}/reviews`} icon={FileCheck2} title={t(messages, "nav.reviews")} description={c.loop.review} />
-            <LoopAction href={`/${locale}/ai`} icon={Bot} title={t(messages, "nav.ai")} description={c.loop.ai} />
-          </div>
-        </SectionPanel>
-      </div>
     </div>
   );
 }
@@ -631,7 +452,7 @@ export function DisciplinePanel({ discipline, locale }: { discipline: Discipline
               <p className="text-sm font-semibold text-foreground">
                 {locale === "fa" ? "امتیاز انضباط هفتگی" : "Weekly discipline score"}
               </p>
-              <p className="text-2xl font-bold text-foreground">{disciplineScore.score}</p>
+              <p className="text-2xl font-bold text-foreground">{formatCount(disciplineScore.score, locale)}</p>
               <p className="text-xs text-muted-foreground">{locale === "fa" ? "از ۱۰۰" : "out of 100"}</p>
             </div>
           </div>
@@ -661,7 +482,7 @@ export function DisciplinePanel({ discipline, locale }: { discipline: Discipline
                   check.passed ? "border-success/30 bg-success/10 text-success" : "border-warning/30 bg-warning/10 text-warning"
                 )}
               >
-                {`${disciplineCheckLabels[locale][check.key] ?? check.key} ${Math.round(check.score)}%`}
+                {`${disciplineCheckLabels[locale][check.key] ?? check.key} ${formatPercent(Math.round(check.score) / 100, locale)}`}
               </div>
             ))}
           </div>
@@ -708,8 +529,9 @@ export function DisciplinePanel({ discipline, locale }: { discipline: Discipline
               <div key={p.mistake} className="flex items-center justify-between gap-3 text-xs">
                 <span className="font-medium text-foreground">{p.mistake}</span>
                 <span className="shrink-0 text-muted-foreground">
-                  {p.frequency}× · {locale === "fa" ? "پیاپی: " : "streak: "}{p.streak}/5
-                  {p.avgRImpact !== null ? ` · ${locale === "fa" ? "میانگین R" : "avg R"} ${p.avgRImpact.toFixed(2)}` : ""}
+                  {formatCount(p.frequency, locale)}× · {locale === "fa" ? "پیاپی: " : "streak: "}
+                  {formatCount(p.streak, locale)}/{formatCount(5, locale)}
+                  {p.avgRImpact !== null ? ` · ${locale === "fa" ? "میانگین R" : "avg R"} ${formatNumber(p.avgRImpact, locale, { min: 2, max: 2 })}` : ""}
                 </span>
               </div>
             ))}
@@ -772,7 +594,7 @@ function SessionPanel({
           <div className="flex items-center gap-2">
             <Link
               href={`/${locale}/journal`}
-              className="inline-flex min-h-9 items-center gap-1.5 rounded-md bg-primary/10 px-3 text-sm font-semibold text-primary transition hover:bg-primary/20"
+              className="inline-flex min-h-11 items-center gap-1.5 rounded-md bg-primary/10 px-3 text-sm font-semibold text-primary transition hover:bg-primary/20"
             >
               <Target className="size-4" aria-hidden="true" />
               {c.quickJournal}
@@ -780,7 +602,7 @@ function SessionPanel({
             <button
               onClick={() => onStopSession(activeSession.id, "completed")}
               disabled={stoppingSess}
-              className="inline-flex min-h-9 items-center gap-1.5 rounded-md bg-success/10 px-3 text-sm font-semibold text-success transition hover:bg-success/20 disabled:opacity-60"
+              className="inline-flex min-h-11 items-center gap-1.5 rounded-md bg-success/10 px-3 text-sm font-semibold text-success transition hover:bg-success/20 disabled:opacity-60"
             >
               <StopCircle className="size-4" aria-hidden="true" />
               {stoppingSess ? c.stopping : c.complete}
@@ -788,7 +610,7 @@ function SessionPanel({
             <button
               onClick={() => onStopSession(activeSession.id, "abandoned")}
               disabled={stoppingSess}
-              className="inline-flex min-h-9 items-center gap-1.5 rounded-md px-3 text-sm text-muted-foreground transition hover:bg-muted hover:text-foreground disabled:opacity-60"
+              className="inline-flex min-h-11 items-center gap-1.5 rounded-md px-3 text-sm text-muted-foreground transition hover:bg-muted hover:text-foreground disabled:opacity-60"
             >
               {c.abandon}
             </button>
@@ -818,7 +640,7 @@ function SessionPanel({
         {!showStartForm && (
           <button
             onClick={onToggleForm}
-            className="inline-flex min-h-9 items-center gap-1.5 rounded-md bg-primary px-4 text-sm font-semibold text-primary-foreground transition hover:brightness-110"
+            className="inline-flex min-h-11 items-center gap-1.5 rounded-md bg-primary px-4 text-sm font-semibold text-primary-foreground transition hover:brightness-110"
           >
             <Play className="size-4" aria-hidden="true" />
             {c.start}
@@ -833,7 +655,7 @@ function SessionPanel({
             <select
               value={sessionForm.market}
               onChange={(e) => onFormChange("market", e.target.value)}
-              className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+              className="min-h-11 w-full rounded-md border border-border bg-background px-3 py-2 text-base focus:outline-none focus:ring-2 focus:ring-primary"
             >
               <option value="crypto">{marketNames.crypto}</option>
               <option value="forex">{marketNames.forex}</option>
@@ -848,7 +670,7 @@ function SessionPanel({
               value={sessionForm.sessionLabel}
               onChange={(e) => onFormChange("sessionLabel", e.target.value)}
               placeholder={c.labelPlaceholder}
-              className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+              className="min-h-11 w-full rounded-md border border-border bg-background px-3 py-2 text-base placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
             />
           </div>
           <div className="sm:col-span-2">
@@ -858,7 +680,7 @@ function SessionPanel({
               value={sessionForm.mistakeToAvoid}
               onChange={(e) => onFormChange("mistakeToAvoid", e.target.value)}
               placeholder={c.mistakePlaceholder}
-              className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+              className="min-h-11 w-full rounded-md border border-border bg-background px-3 py-2 text-base placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
             />
           </div>
           <div>
@@ -868,7 +690,7 @@ function SessionPanel({
               value={sessionForm.emotionalState}
               onChange={(e) => onFormChange("emotionalState", e.target.value)}
               placeholder={c.emotionalStatePlaceholder}
-              className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+              className="min-h-11 w-full rounded-md border border-border bg-background px-3 py-2 text-base placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
             />
           </div>
           <SessionError message={error} className="sm:col-span-2" />
@@ -876,7 +698,7 @@ function SessionPanel({
             <button
               type="submit"
               disabled={startingSess}
-              className="inline-flex min-h-9 items-center gap-1.5 rounded-md bg-primary px-4 text-sm font-semibold text-primary-foreground transition hover:brightness-110 disabled:opacity-60"
+              className="inline-flex min-h-11 items-center gap-1.5 rounded-md bg-primary px-4 text-sm font-semibold text-primary-foreground transition hover:brightness-110 disabled:opacity-60"
             >
               <Play className="size-4" aria-hidden="true" />
               {startingSess ? c.starting : c.start}
@@ -884,7 +706,7 @@ function SessionPanel({
             <button
               type="button"
               onClick={onToggleForm}
-              className="inline-flex min-h-9 items-center rounded-md px-3 text-sm text-muted-foreground transition hover:bg-muted hover:text-foreground"
+              className="inline-flex min-h-11 items-center rounded-md px-3 text-sm text-muted-foreground transition hover:bg-muted hover:text-foreground"
             >
               {c.cancel}
             </button>
@@ -902,47 +724,5 @@ function SessionError({ message, className = "" }: { message: string | null; cla
     <p role="alert" className={`mt-3 rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive ${className}`}>
       {message}
     </p>
-  );
-}
-
-/** A next-step link in the dashboard’s "no plan" slot; styled like the actions of an empty page. */
-function FirstStepLink({ href, primary = false, children }: { href: string; primary?: boolean; children: React.ReactNode }) {
-  return (
-    <Link
-      href={href}
-      className={
-        primary
-          ? "inline-flex min-h-11 items-center justify-center rounded-md bg-primary px-4 text-sm font-semibold text-primary-foreground transition hover:brightness-110"
-          : "inline-flex min-h-11 items-center justify-center rounded-md border border-border px-4 text-sm font-semibold text-foreground transition hover:bg-muted"
-      }
-    >
-      {children}
-    </Link>
-  );
-}
-
-function Evidence({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-md border border-border bg-background/40 p-3">
-      <p className="text-xs text-muted-foreground">{label}</p>
-      <p className="mt-1 text-sm font-semibold text-foreground">{value}</p>
-    </div>
-  );
-}
-
-function LoopAction({ href, icon: Icon, title, description }: { href: string; icon: LucideIcon; title: string; description: string }) {
-  return (
-    <Link
-      href={href}
-      className="flex min-h-24 items-start gap-3 rounded-md border border-border bg-muted/20 p-3 transition hover:border-primary/40 hover:bg-primary/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-    >
-      <span className="grid size-10 shrink-0 place-items-center rounded-md bg-primary/10 text-primary">
-        <Icon className="size-5" aria-hidden="true" />
-      </span>
-      <span>
-        <span className="block text-sm font-semibold text-foreground">{title}</span>
-        <span className="mt-1 block text-xs leading-5 text-muted-foreground">{description}</span>
-      </span>
-    </Link>
   );
 }

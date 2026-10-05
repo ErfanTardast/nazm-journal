@@ -172,14 +172,15 @@ export type MetricsTrade = JournalTrade & {
 const finiteOrUndefined = (value: number | null | undefined) =>
   typeof value === "number" && Number.isFinite(value) ? value : undefined;
 
-type Outcome = { pnl?: number; r?: number; risk?: number; sign: number };
+export type Outcome = { pnl?: number; r?: number; risk?: number; sign: number };
 
 const runningTotal = (values: number[]) => values.reduce<number[]>((curve, value) => [...curve, (curve[curve.length - 1] ?? 0) + value], []);
 
-const isClosed = (trade: MetricsTrade) => trade.status === "closed" && trade.exitPrice !== null;
+export const isClosed = (trade: MetricsTrade) => trade.status === "closed" && trade.exitPrice !== null;
 const sum = (values: number[]) => values.reduce((total, value) => total + value, 0);
 
-function closedOutcome(trade: MetricsTrade): Outcome {
+/** Money, R, risk and the win/loss sign of one closed trade; stored values win over derived ones. */
+export function closedOutcome(trade: MetricsTrade): Outcome {
   const derived: TradeOutcome = trade.market
     ? deriveTradeOutcome({ ...trade, market: trade.market })
     : (() => {
@@ -215,34 +216,44 @@ function setupOutcome(legs: { outcome: Outcome; quantity: number }[]): Outcome {
   return { pnl, r, risk, sign: Math.sign(pnl ?? r ?? sum(legs.map((leg) => leg.outcome.sign * leg.quantity))) };
 }
 
+/** One entry as the journal counts it: its legs (in the order given) and the result they add up to. */
+export type ClosedEntry<T extends MetricsTrade = MetricsTrade> = { legs: T[]; outcome: Outcome };
+
 /**
- * Metrics per entry rather than per position: legs of one entry (clusterLadders) count once, and only when
- * every leg is closed and, when the entry's size is known, all of its legs are recorded. Trades without a
- * ladder key are their own entry. combined counts entries of two or more legs; pendingLegs counts closed legs
- * left out because the rest of their entry is still open or not imported yet.
+ * The entries behind metrics per entry rather than per position: legs of one entry (clusterLadders) count once,
+ * and only when every leg is closed and, when the entry's size is known, all of its legs are recorded. Trades
+ * without a ladder key are their own entry (single trades first, then ladders). combined counts entries of two
+ * or more legs; pendingLegs counts closed legs left out because the rest of their entry is still open or not
+ * imported yet.
  */
-function calculateSetupMetrics(trades: MetricsTrade[]) {
+export function closedEntries<T extends MetricsTrade>(trades: T[]) {
   const active = trades.filter((trade) => trade.status !== "planned" && trade.status !== "canceled");
   const clusters = clusterLadders(active);
-  const entries = new Map<number, MetricsTrade[]>();
-  const setups: Outcome[] = [];
+  const ladders = new Map<number, T[]>();
+  const entries: ClosedEntry<T>[] = [];
   active.forEach((trade, index) => {
-    if (clusters[index] !== -1) entries.set(clusters[index], [...(entries.get(clusters[index]) ?? []), trade]);
-    else if (isClosed(trade)) setups.push(closedOutcome(trade));
+    if (clusters[index] !== -1) ladders.set(clusters[index], [...(ladders.get(clusters[index]) ?? []), trade]);
+    else if (isClosed(trade)) entries.push({ legs: [trade], outcome: closedOutcome(trade) });
   });
 
   let combined = 0;
   let pendingLegs = 0;
-  for (const legs of entries.values()) {
+  for (const legs of ladders.values()) {
     const size = Math.max(0, ...legs.map((leg) => leg.ladderSize ?? 0));
     if (legs.length < size || !legs.every(isClosed)) {
       pendingLegs += legs.filter(isClosed).length;
       continue;
     }
     if (legs.length > 1) combined += 1;
-    setups.push(setupOutcome(legs.map((leg) => ({ outcome: closedOutcome(leg), quantity: leg.quantity }))));
+    entries.push({ legs, outcome: setupOutcome(legs.map((leg) => ({ outcome: closedOutcome(leg), quantity: leg.quantity }))) });
   }
+  return { entries, combined, pendingLegs };
+}
 
+/** Metrics per entry rather than per position (see closedEntries). */
+function calculateSetupMetrics(trades: MetricsTrade[]) {
+  const { entries, combined, pendingLegs } = closedEntries(trades);
+  const setups = entries.map((entry) => entry.outcome);
   const wins = setups.filter((setup) => setup.sign > 0).length;
   const rs = setups.flatMap((setup) => (setup.r === undefined ? [] : [setup.r]));
   const pnls = setups.flatMap((setup) => (setup.pnl === undefined ? [] : [setup.pnl]));

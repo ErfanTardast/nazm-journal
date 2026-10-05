@@ -1,8 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { getMessages } from "@/lib/i18n/messages";
+import { emptyReport, fullReport } from "./support/performance-report";
 
-vi.mock("next/navigation", () => ({ usePathname: () => "/en/performance", useRouter: () => ({ push: vi.fn(), refresh: vi.fn() }) }));
+vi.mock("next/navigation", () => ({ usePathname: () => "/en/performance", useSearchParams: () => new URLSearchParams(), useRouter: () => ({ push: vi.fn(), refresh: vi.fn() }) }));
 vi.mock("@/lib/api/client", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/lib/api/client")>();
   return { ...actual, apiFetch: vi.fn() };
@@ -20,6 +21,7 @@ const en = getMessages("en");
 const fa = getMessages("fa");
 
 const noMetrics = { totalTrades: 0, winRate: 0, netPnl: 0, profitFactor: 0, expectancy: 0, averageR: 0, maxDrawdownAmount: 0, maxDrawdownR: 0, equityCurve: [] };
+const performanceReport = (hasTrades: boolean) => ({ report: hasTrades ? fullReport() : emptyReport("all") });
 const aTrade = {
   id: "t1",
   strategyId: null,
@@ -56,6 +58,7 @@ function serve(locale: "en" | "fa", opts: { trades: unknown[]; sample: unknown }
   const routes: Record<string, unknown> = {
     "GET /api/trades": { trades: opts.trades },
     "GET /api/trades/metrics": { metrics: opts.trades.length ? { ...noMetrics, totalTrades: opts.trades.length, wins: 1, losses: 0, equityCurve: [1, 2] } : noMetrics },
+    "GET /api/performance?period=all": performanceReport(opts.trades.length > 0),
     "GET /api/strategies": { strategies: [] },
     "GET /api/ideas": { ideas: [] },
     "GET /api/reviews": { reviews: [] },
@@ -124,6 +127,7 @@ describe("the empty performance page", () => {
     serve("en", { trades: [], sample: null });
     (apiFetch as Mock).mockImplementation(async (path: string) => {
       if (path === "/api/sample-workspace") throw new Error("down");
+      if (path === "/api/performance?period=all") return performanceReport(false);
       return path === "/api/trades" ? { trades: [] } : { metrics: noMetrics };
     });
     render(<PerformanceScreen locale="en" messages={en} />);
@@ -136,7 +140,7 @@ describe("the empty performance page", () => {
     serve("en", { trades: [aTrade], sample: canLoad });
     render(<PerformanceScreen locale="en" messages={en} />);
 
-    await screen.findByText("Win rate");
+    await screen.findByRole("button", { name: "All" });
     expect(screen.queryByRole("button", { name: "Load sample data" })).toBeNull();
   });
 });

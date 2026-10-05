@@ -9,27 +9,34 @@ vi.mock("@/lib/services/trades", () => ({
 vi.mock("@/lib/services/playbook-adherence", () => ({
   getPlaybookAdherence: vi.fn(async () => [{ name: "پولبک", adherenceRate: 0.8, avgRMultiple: 0.5, tradeCount: 3 }])
 }));
-vi.mock("@/lib/services/portfolios", () => ({ listPortfolios: vi.fn(async () => []) }));
-vi.mock("@/lib/services/sessions", () => ({ getActiveSession: vi.fn(async () => null) }));
 
 import { prisma } from "@/lib/db/prisma";
-import { getTradeMetrics } from "@/lib/services/trades";
-import { getDashboardOverview } from "@/lib/services/dashboard";
 import { getDisciplineOverview } from "@/lib/services/discipline";
 import { getMentorReport } from "@/lib/services/mentor-report";
 
 const PERSIAN_LETTER = /[؀-ۿ]/;
 
-/** A week with a breached daily loss limit, two unplanned losing trades today and two losses in a row. */
+/**
+ * A week with a breached daily loss limit, two unplanned losing trades today (-2R and -1.5R at 1% risk: 3.5% against a
+ * 3% limit) and two losses in a row.
+ */
 function mockBadDay() {
-  const tradeFindMany = vi.fn(async (args: { where: { status?: string } }) =>
-    args.where.status === "closed"
-      ? [{ realizedPnl: "-3" }, { realizedPnl: "-5" }, { realizedPnl: "12" }]
-      : [
-          { riskPercent: 2, realizedPnl: "-5", strategyId: null },
-          { riskPercent: 1.5, realizedPnl: "-2", strategyId: null }
-        ]
-  );
+  const now = new Date();
+  const lossToday = (realizedPnl: string, rMultiple: string, riskPercent: number) => ({
+    status: "closed",
+    openedAt: now,
+    closedAt: now,
+    realizedPnl,
+    rMultiple,
+    riskPercent,
+    riskAmount: null,
+    strategyId: null
+  });
+  const tradeFindMany = vi.fn(async (args: { where: { status?: string }; select: Record<string, boolean> }) => {
+    if (args.select.ruleFollowed) return [];
+    if (args.where.status === "closed") return [{ realizedPnl: "-3" }, { realizedPnl: "-5" }, { realizedPnl: "12" }];
+    return [lossToday("-5", "-2", 2), lossToday("-2", "-1.5", 1.5)];
+  });
   Object.assign(prisma, {
     tradePlan: { findMany: vi.fn(async () => []) },
     tradeJournalEntry: { findMany: vi.fn(async () => []), count: vi.fn(async () => 0) },
@@ -82,45 +89,5 @@ describe("getMentorReport in the language asked for", () => {
     expect(english.period).toBe("all time");
     expect(english.headline).toBe("Process review for all time: 5 trades, win rate 60.0%, average 0.20R.");
     expect(await getMentorReport("u1", { locale: "en" })).toEqual(english);
-  });
-});
-
-describe("getDashboardOverview coaching summary in the language asked for", () => {
-  beforeEach(() => {
-    Object.assign(prisma, {
-      watchlist: { findMany: vi.fn(async () => []) },
-      trade: { count: vi.fn(async () => 0), findMany: vi.fn(async () => []) },
-      alert: { count: vi.fn(async () => 0) },
-      strategy: { count: vi.fn(async () => 0) },
-      tradePlan: { findMany: vi.fn(async () => []) },
-      idea: { findMany: vi.fn(async () => []) },
-      tradeJournalEntry: { findMany: vi.fn(async () => []), count: vi.fn(async () => 0) },
-      newsItem: { findMany: vi.fn(async () => []) },
-      user: { findUnique: vi.fn(async () => null) }
-    });
-  });
-
-  it("writes it in Persian for fa, with and without closed trades", async () => {
-    vi.mocked(getTradeMetrics).mockResolvedValueOnce({ totalTrades: 0 } as never);
-    expect((await getDashboardOverview("u1", "fa")).coachingSummary).toBe(
-      "با افزودن معامله‌های برنامه‌ریزی‌شده و یادداشت‌های ژورنال شروع کنید. روی کیفیت فرایند تمرکز کنید، نه نتیجه."
-    );
-
-    vi.mocked(getTradeMetrics).mockResolvedValueOnce({ totalTrades: 12 } as never);
-    expect((await getDashboardOverview("u1", "fa")).coachingSummary).toBe(
-      "پیش از برنامه‌ریزی جلسه بعد، ۱۲ معامله بسته‌شده، اشتباه‌های تکراری و ثبات ریسک را مرور کنید."
-    );
-  });
-
-  it("keeps the English summary for en and when no language is given", async () => {
-    vi.mocked(getTradeMetrics).mockResolvedValueOnce({ totalTrades: 0 } as never);
-    expect((await getDashboardOverview("u1")).coachingSummary).toBe(
-      "Start by adding planned trades and journal entries. Focus on process quality before outcome."
-    );
-
-    vi.mocked(getTradeMetrics).mockResolvedValueOnce({ totalTrades: 12 } as never);
-    expect((await getDashboardOverview("u1", "en")).coachingSummary).toBe(
-      "Review 12 closed trades, repeated mistakes, and risk consistency before planning the next session."
-    );
   });
 });

@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
+import { latinDigitStrings } from "./support/latin-digits";
 
 vi.mock("@/lib/api/client", () => ({ apiFetch: vi.fn() }));
 import { apiFetch } from "@/lib/api/client";
@@ -55,6 +56,24 @@ describe("DisciplineStreakPanel", () => {
     vi.mocked(apiFetch).mockResolvedValue(streak() as never);
     render(<DisciplineStreakPanel locale="fa" />);
     expect(await screen.findByText("زنجیره انضباط")).toBeInTheDocument();
+  });
+
+  it("writes every number in Persian digits for fa: the streaks, the ratio, the percent and the unreviewed days", async () => {
+    vi.mocked(apiFetch).mockResolvedValue(streak({ unreviewedDays: 3 }) as never);
+    const { container } = render(<DisciplineStreakPanel locale="fa" />);
+    expect(await screen.findByText("زنجیره انضباط")).toBeInTheDocument();
+    expect(screen.getByText("۴")).toBeInTheDocument();
+    expect(screen.getByText("۹")).toBeInTheDocument();
+    expect(screen.getByText("۱۵/۲۰ (۷۵٪)")).toBeInTheDocument();
+    expect(screen.getByText(/^۳ روز معاملاتی/)).toBeInTheDocument();
+    expect(latinDigitStrings(container)).toEqual([]);
+  });
+
+  it("writes the streak and the unreviewed days in Persian digits when the last day broke the streak", async () => {
+    vi.mocked(apiFetch).mockResolvedValue(streak({ currentStreak: 0, brokeStreakOnLastDay: true, totalActiveDays: 1200, totalDisciplinedDays: 800 }) as never);
+    const { container } = render(<DisciplineStreakPanel locale="fa" />);
+    expect(await screen.findByText("۸۰۰/۱٬۲۰۰ (۶۷٪)")).toBeInTheDocument();
+    expect(latinDigitStrings(container)).toEqual([]);
   });
 
   it("renders nothing (degrades gracefully) when the fetch fails", async () => {

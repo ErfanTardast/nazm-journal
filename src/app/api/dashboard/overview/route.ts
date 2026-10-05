@@ -6,7 +6,8 @@ import { resolveGeneratedLocale } from "@/lib/services/locale";
 export async function GET(request: Request) {
   return routeHandler(async () => {
     const user = await requireUser();
-    return ok(await getDashboardOverview(user.id, resolveGeneratedLocale(new URL(request.url).searchParams.get("locale"), user.locale)));
+    const locale = resolveGeneratedLocale(new URL(request.url).searchParams.get("locale"), user.locale);
+    // Today and the 7 and 30 day windows follow the time zone saved in Settings.
+    return ok(await getDashboardOverview(user.id, locale, { timeZone: user.timezone }));
   });
 }
-

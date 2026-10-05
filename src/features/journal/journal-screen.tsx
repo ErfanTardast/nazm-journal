@@ -43,7 +43,9 @@ import { estimateDataUrlBytes, fileToCompressedDataUrl, validateImageFile } from
 import { entryLegIds } from "@/lib/calculations/ladders";
 import { formatMoney, formatPercent } from "@/lib/i18n/format";
 import { localDateTimeToIso, toLocalDateTimeValue } from "@/lib/time/local-datetime";
+import { DrillDownChip } from "./drill-down-chip";
 import { neutralTag, TradeReviewEditor } from "./trade-review-editor";
+import { useDrillDown } from "./use-drill-down";
 import { t, type getMessages } from "@/lib/i18n/messages";
 import type { Locale } from "@/lib/i18n/locales";
 import { splitListInput } from "@/lib/text/split-list";
@@ -426,6 +428,9 @@ export function JournalScreen({ locale, messages }: { locale: Locale; messages: 
   const [query, setQuery] = useState("");
   const [market, setMarket] = useState<Market | "all">("all");
   const [status, setStatus] = useState<TradeStatus | "all">("all");
+  // Opened from a Performance row: only the trades behind it (see use-drill-down).
+  const drillDown = useDrillDown();
+  const drillIds = drillDown.ids;
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [screenshot, setScreenshot] = useState<string | null>(null);
   const [screenshotBusy, setScreenshotBusy] = useState(false);
@@ -513,15 +518,16 @@ export function JournalScreen({ locale, messages }: { locale: Locale; messages: 
         .filter(Boolean)
         .join(" ")
         .toLowerCase();
-      return matchesMarket && matchesStatus && (!normalized || haystack.includes(normalized));
+      return matchesMarket && matchesStatus && (!drillIds || drillIds.has(trade.id)) && (!normalized || haystack.includes(normalized));
     });
-  }, [c, market, query, status, trades]);
+  }, [c, drillIds, market, query, status, trades]);
 
   const legIds = useMemo(() => entryLegIds(trades), [trades]);
-  const selectedTrade = useMemo(
-    () => trades.find((trade) => trade.id === selectedId) ?? filteredTrades[0] ?? null,
-    [filteredTrades, selectedId, trades]
-  );
+  const selectedTrade = useMemo(() => {
+    const chosen = trades.find((trade) => trade.id === selectedId);
+    // With a Performance row open, the dossier follows the list: a trade outside the row is not shown.
+    return (drillIds && chosen && !drillIds.has(chosen.id) ? null : chosen) ?? filteredTrades[0] ?? null;
+  }, [drillIds, filteredTrades, selectedId, trades]);
 
   const ruleStats = useMemo(() => {
     const relevant = trades.filter((trade) => trade.ruleFollowed !== "unknown");
@@ -732,6 +738,7 @@ export function JournalScreen({ locale, messages }: { locale: Locale; messages: 
           {/* Nothing to filter or list on an empty journal: the empty state above is the only message. */}
           {trades.length > 0 ? (
             <>
+            {drillDown.status !== "none" ? <DrillDownChip drill={drillDown} locale={locale} trades={trades} /> : null}
             <SectionPanel
               title={c.filters}
               description={c.filtersDesc}

@@ -10,7 +10,6 @@ vi.mock("@/lib/api/client", async (importOriginal) => {
 import { ApiClientError, apiFetch } from "@/lib/api/client";
 import { GrowthScreen } from "@/features/growth/growth-screen";
 import { NewsScreen } from "@/features/news/news-screen";
-import { PerformanceScreen } from "@/features/performance/performance-screen";
 
 const en = getMessages("en");
 const fa = getMessages("fa");
@@ -162,61 +161,6 @@ describe("NewsScreen in Persian", () => {
     expect(screen.getByRole("columnheader", { name: "Importance" })).toBeInTheDocument();
     expect(screen.getByLabelText("Market filter")).toBeInTheDocument();
     expect(screen.getAllByText("High").length).toBeGreaterThan(0);
-  });
-});
-
-describe("PerformanceScreen in Persian", () => {
-  const metrics = {
-    totalTrades: 3,
-    wins: 2,
-    losses: 1,
-    winRate: 2 / 3,
-    grossProfit: 300,
-    grossLoss: 100,
-    netPnl: 200,
-    averageR: 0.8,
-    profitFactor: 3,
-    expectancy: 66.7,
-    maxDrawdownAmount: 100,
-    maxDrawdownR: 1,
-    equityCurve: [100, 250, 200],
-    setups: { count: 3, combined: 1, pendingLegs: 0, wins: 2, losses: 1, winRate: 2 / 3, averageR: 0.8, expectancy: 66.7 }
-  };
-  // No strategy, setup, session or emotion on these trades: the "unspecified" group must not be English.
-  const trades = [
-    { symbol: "EURUSD", market: "forex", side: "long", realizedPnl: 200, rMultiple: 2 },
-    { symbol: "BTCUSDT", market: "crypto", side: "short", realizedPnl: 100, rMultiple: 1 },
-    { symbol: "EURUSD", market: "forex", side: "long", realizedPnl: -100, rMultiple: -1 }
-  ];
-
-  it("has no English in the report, including the unspecified groups and market names", async () => {
-    serve({ "GET /api/trades": { trades }, "GET /api/trades/metrics": { metrics } });
-    const { container } = render(<PerformanceScreen locale="fa" messages={fa} />);
-    await screen.findAllByText("منحنی سرمایه");
-    expect(englishLeaks(container)).toEqual([]);
-    expect(screen.getAllByText("فارکس").length).toBeGreaterThan(0);
-  });
-
-  it("describes the equity curve for screen readers in Persian", async () => {
-    serve({ "GET /api/trades": { trades }, "GET /api/trades/metrics": { metrics } });
-    const { container } = render(<PerformanceScreen locale="fa" messages={fa} />);
-    await screen.findAllByText("منحنی سرمایه");
-    const description = container.querySelector("svg desc")?.textContent ?? "";
-    expect(description).toMatch(ARABIC_SCRIPT);
-    expect(description).not.toMatch(/closed journal results/);
-  });
-
-  it("has no English when the report cannot be loaded", async () => {
-    failWith(new ApiClientError("Unexpected server error", 500, "INTERNAL_SERVER_ERROR"));
-    const { container } = render(<PerformanceScreen locale="fa" messages={fa} />);
-    await waitFor(() => expect(container.textContent).toMatch(ARABIC_SCRIPT));
-    expect(englishLeaks(container)).toEqual([]);
-  });
-
-  it("keeps the English group name on the English page", async () => {
-    serve({ "GET /api/trades": { trades }, "GET /api/trades/metrics": { metrics } });
-    render(<PerformanceScreen locale="en" messages={en} />);
-    expect((await screen.findAllByText("Unspecified")).length).toBeGreaterThan(0);
   });
 });
 

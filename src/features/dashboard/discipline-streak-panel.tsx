@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Flame, Trophy, CalendarCheck2, AlertTriangle } from "lucide-react";
 import { apiFetch } from "@/lib/api/client";
+import { formatCount, formatPercent } from "@/lib/i18n/format";
 import type { Locale } from "@/lib/i18n/locales";
 import { cn } from "@/lib/utils";
 
@@ -27,8 +28,8 @@ const copy = {
     empty: "No trading days yet. The streak starts with your first rule-following day.",
     broke: "The last active day broke the streak. One clean, rule-following session restarts it today.",
     note: "Counted over active trading days only — a day without trades never breaks a streak.",
-    unreviewed: (days: number) =>
-      `${days} trading day${days === 1 ? " has" : "s have"} trades without a rule verdict, so ${days === 1 ? "it is" : "they are"} not counted. Mark each trade followed or broken in the journal.`
+    unreviewed: (days: number, shown: string) =>
+      `${shown} trading day${days === 1 ? " has" : "s have"} trades without a rule verdict, so ${days === 1 ? "it is" : "they are"} not counted. Mark each trade followed or broken in the journal.`
   },
   fa: {
     title: "زنجیره انضباط",
@@ -39,8 +40,8 @@ const copy = {
     empty: "هنوز روز معاملاتی ثبت نشده است. زنجیره با اولین روزِ پایبند به قوانین شروع می‌شود.",
     broke: "آخرین روز فعال، زنجیره را شکست. یک جلسه تمیز و طبق قوانین، امروز آن را دوباره شروع می‌کند.",
     note: "فقط روزهای معاملاتی فعال شمرده می‌شوند — روز بدون معامله هرگز زنجیره را نمی‌شکند.",
-    unreviewed: (days: number) =>
-      `${days} روز معاملاتی معامله‌هایی بدون وضعیت قانون دارد و شمرده نمی‌شود. در ژورنال برای هر معامله مشخص کنید قانون رعایت شده یا شکسته.`
+    unreviewed: (_days: number, shown: string) =>
+      `${shown} روز معاملاتی معامله‌هایی بدون وضعیت قانون دارد و شمرده نمی‌شود. در ژورنال برای هر معامله مشخص کنید قانون رعایت شده یا شکسته.`
   }
 } as const;
 
@@ -61,9 +62,8 @@ export function DisciplineStreakPanel({ locale }: { locale: Locale }) {
 
   const hasHistory = streak.totalActiveDays > 0;
   const unreviewedDays = streak.unreviewedDays ?? 0;
-  const disciplinedPct = hasHistory
-    ? Math.round((streak.totalDisciplinedDays / streak.totalActiveDays) * 100)
-    : 0;
+  const disciplinedShare = hasHistory ? Math.round((streak.totalDisciplinedDays / streak.totalActiveDays) * 100) / 100 : 0;
+  const count = (value: number) => formatCount(value, locale);
   const flameActive = streak.currentStreak > 0;
 
   return (
@@ -81,7 +81,7 @@ export function DisciplineStreakPanel({ locale }: { locale: Locale }) {
           <div>
             <p className="text-sm font-semibold text-foreground">{c.title}</p>
             <p className="text-2xl font-bold text-foreground">
-              {streak.currentStreak}
+              {count(streak.currentStreak)}
               <span className="ms-2 text-sm font-medium text-muted-foreground">{c.dayStreak}</span>
             </p>
           </div>
@@ -91,20 +91,20 @@ export function DisciplineStreakPanel({ locale }: { locale: Locale }) {
           <div className="flex flex-wrap items-center gap-4 text-sm">
             <span className="inline-flex items-center gap-1.5 text-muted-foreground">
               <Trophy className="size-4 text-warning" aria-hidden="true" />
-              {c.best}: <span className="font-semibold text-foreground">{streak.bestStreak}</span>
+              {c.best}: <span className="font-semibold text-foreground">{count(streak.bestStreak)}</span>
             </span>
             <span className="inline-flex items-center gap-1.5 text-muted-foreground">
               <CalendarCheck2 className="size-4 text-success" aria-hidden="true" />
               {c.disciplinedDays}:{" "}
-              <span className="font-semibold text-foreground">
-                {streak.totalDisciplinedDays}/{streak.totalActiveDays} ({disciplinedPct}%)
+              <span dir="ltr" className="font-semibold text-foreground">
+                {`${count(streak.totalDisciplinedDays)}/${count(streak.totalActiveDays)} (${formatPercent(disciplinedShare, locale)})`}
               </span>
             </span>
           </div>
         ) : null}
       </div>
 
-      {unreviewedDays > 0 ? <p className="mt-3 text-sm leading-6 text-muted-foreground">{c.unreviewed(unreviewedDays)}</p> : null}
+      {unreviewedDays > 0 ? <p className="mt-3 text-sm leading-6 text-muted-foreground">{c.unreviewed(unreviewedDays, count(unreviewedDays))}</p> : null}
       {!hasHistory ? (
         unreviewedDays > 0 ? null : <p className="mt-3 text-sm leading-6 text-muted-foreground">{c.empty}</p>
       ) : streak.brokeStreakOnLastDay ? (

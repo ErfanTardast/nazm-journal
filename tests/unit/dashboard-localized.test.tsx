@@ -179,18 +179,17 @@ describe("DashboardScreen in Persian", () => {
     expect(seen).toEqual([]);
   });
 
-  it("uses پلن in the headline, the next action, the checks and the loop", async () => {
+  it("uses پلن in the headline, the next action, the plan tile, the checks and the quick actions", async () => {
     serve({ "GET /api/dashboard/overview": { ...overview, plannedTrades: [], readiness: { ...overview.readiness, status: "not_ready", primaryAction: "plan" } } });
     await renderFa();
     expect(screen.getByText("ساخت پلن کامل")).toBeInTheDocument();
-    expect(screen.getByText("پلن مکتوب امروز")).toBeInTheDocument();
+    expect(screen.getByText("پلن امروز")).toBeInTheDocument();
     expect(screen.getByText("پلن فعالی آماده نیست. ابتدا سناریو، ریسک، ابطال و چک‌لیست را مشخص کنید.")).toBeInTheDocument();
     expect(screen.getByText("یک پلن مکتوب کامل")).toBeInTheDocument();
-    expect(screen.getByText("پلن کامل")).toBeInTheDocument();
-    expect(screen.getByText("پلن ← ژورنال ← مرور ← بهبود")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "پلن جدید" })).toBeInTheDocument();
     expect(screen.getByText(/پلن را مرور کنید/)).toBeInTheDocument();
     expect(screen.getByText(/بدون پلن مکتوب یا پلی‌بوک/)).toBeInTheDocument();
-    expect(screen.getByText("پلن‌ها 50%")).toBeInTheDocument();
+    expect(screen.getByText("پلن‌ها ۵۰٪")).toBeInTheDocument();
   });
 
   it("shows the plan's market and status and the review's status in Persian", async () => {
@@ -320,7 +319,7 @@ describe("DisciplinePanel check names", () => {
   it("name the five weekly checks with the glossary words", () => {
     const checks = ["plan_adherence", "rule_discipline", "journal_completeness", "mistake_control", "review_consistency"].map((key) => ({ key, score: 80, passed: true, detail: "" }));
     const { container } = render(<DisciplinePanel locale="fa" discipline={{ ...discipline, disciplineScore: { score: 80, grade: "B", checks } } as never} />);
-    for (const label of ["پلن‌ها 80%", "قوانین 80%", "ژورنال 80%", "خطاها 80%", "مرورها 80%"]) expect(screen.getByText(label)).toBeInTheDocument();
+    for (const label of ["پلن‌ها ۸۰٪", "قوانین ۸۰٪", "ژورنال ۸۰٪", "خطاها ۸۰٪", "مرورها ۸۰٪"]) expect(screen.getByText(label)).toBeInTheDocument();
     expect(container.textContent).not.toContain("اشتباهات");
   });
 });
